@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-08-pending-scheduler
+  namespace: default
+  labels:
+    scenario: "08-pods-pending-scheduler"
+    app: scenario-08
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-08
+  template:
+    metadata:
+      labels:
+        app: scenario-08
+        scenario: "08-pods-pending-scheduler"
+    spec:
+      # BUG 1: nodeSelector requires a label that exists on no cluster node.
+      # The scheduler will emit: "node(s) didn't match node selector"
+      nodeSelector:
+        hardware: gpu-v100-ultra
+
+      containers:
+        - name: app
+          image: REGISTRY_PLACEHOLDER/scenario-08-pods-pending-scheduler:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: APP_PORT
+              value: "8080"
+          resources:
+            requests:
+              # BUG 2: 128 CPU cores and 2 tebibytes of memory.
+              # No real Kubernetes node will satisfy this request.
+              # The scheduler emits: "Insufficient cpu" and "Insufficient memory"
+              cpu: "128"
+              memory: "2Ti"
+            limits:
+              cpu: "128"
+              memory: "2Ti"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+      restartPolicy: Always

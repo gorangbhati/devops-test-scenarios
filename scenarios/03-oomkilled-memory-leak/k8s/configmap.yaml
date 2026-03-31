@@ -1,0 +1,13 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scenario-03-config
+  namespace: default
+  labels:
+    scenario: "03-oomkilled-memory-leak"
+data:
+  APP_PORT: "8080"
+  # Megabytes to allocate per /leak request.
+  # With ALLOC_MB=10 and memory limit of 32Mi, just 3 requests trigger OOMKill.
+  ALLOC_MB: "10"

@@ -1,0 +1,37 @@
+---
+# Broken CoreDNS ConfigMap — apply this to reproduce the DNS failure scenario.
+#
+# Changes from the healthy default:
+#   - Upstream forwarder changed from 8.8.8.8 to 192.0.2.1 (TEST-NET, unreachable)
+#
+# WARNING: Applying this will break DNS resolution for ALL pods in the cluster.
+# Restore the healthy config (healthy-coredns-configmap.yaml) to fix it.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns
+  namespace: kube-system
+  labels:
+    scenario: "07-dns-resolution-failure"
+data:
+  Corefile: |
+    .:53 {
+        errors
+        health {
+          lameduck 5s
+        }
+        ready
+        kubernetes cluster.local in-addr.arpa ip6.arpa {
+          pods insecure
+          fallthrough in-addr.arpa ip6.arpa
+          ttl 30
+        }
+        prometheus :9153
+        # BUG: upstream DNS forwarder is set to an unreachable address (TEST-NET-1)
+        # All external and unresolvable names will fail with SERVFAIL
+        forward . 192.0.2.1
+        cache 30
+        loop
+        reload
+        loadbalance
+    }

@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scenario-04-backend-config
+  namespace: default
+  labels:
+    scenario: "04-connection-refused"
+data:
+  APP_PORT: "5000"

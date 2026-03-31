@@ -1,0 +1,31 @@
+{
+  "name": "scenario-02-api-latency-n-plus-one",
+  "version": "1.0.0",
+  "description": "Scenario 02: API Latency caused by N+1 Database Queries",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "jest --forceExit"
+  },
+  "jest": {
+    "rootDir": "..",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/"
+    ],
+    "modulePaths": [
+      "<rootDir>/app/node_modules"
+    ]
+  },
+  "dependencies": {
+    "better-sqlite3": "11.9.1",
+    "express": "4.21.2",
+    "express-rate-limit": "8.3.2"
+  },
+  "devDependencies": {
+    "jest": "29.7.0",
+    "supertest": "7.1.0"
+  }
+}

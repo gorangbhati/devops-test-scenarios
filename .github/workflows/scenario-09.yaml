@@ -1,0 +1,110 @@
+name: Scenario 09 – ImagePullBackOff
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "scenarios/09-imagepullbackoff/**"
+      - ".github/workflows/scenario-09.yaml"
+  pull_request:
+    paths:
+      - "scenarios/09-imagepullbackoff/**"
+      - ".github/workflows/scenario-09.yaml"
+  workflow_dispatch:
+
+env:
+  SCENARIO: "09-imagepullbackoff"
+
+jobs:
+  # No app build step — this scenario uses only k8s manifests.
+  # The "test" job validates the YAML syntax of the manifests.
+  validate-manifests:
+    name: Validate Manifests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Validate YAML syntax
+        run: |
+          python3 -c "
+          import yaml, sys, glob, os
+          manifests = glob.glob('scenarios/09-imagepullbackoff/k8s/*.yaml')
+          errors = []
+          for path in manifests:
+              try:
+                  with open(path) as f:
+                      list(yaml.safe_load_all(f))
+                  print(f'OK: {os.path.basename(path)}')
+              except yaml.YAMLError as e:
+                  errors.append(f'FAIL {path}: {e}')
+          if errors:
+              print('\n'.join(errors), file=sys.stderr)
+              sys.exit(1)
+          print(f'All {len(manifests)} manifest(s) are valid YAML.')
+          "
+
+  # ──────────────────────────────────────────
+  # Deploy to GKE (demonstrates the failure)
+  # ──────────────────────────────────────────
+  deploy:
+    name: Deploy to GKE
+    runs-on: ubuntu-latest
+    needs: validate-manifests
+    if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
+          location: ${{ secrets.GKE_CLUSTER_ZONE }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Apply bad-image deployment
+        run: |
+          kubectl apply -f scenarios/09-imagepullbackoff/k8s/deployment-bad-image.yaml
+
+      - name: Apply missing-secret deployment
+        env:
+          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
+        run: |
+          REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
+          sed "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
+            scenarios/09-imagepullbackoff/k8s/deployment-missing-secret.yaml \
+            | kubectl apply -f -
+
+      - name: Wait and show ImagePullBackOff status
+        run: |
+          echo "Waiting 60 seconds for pull errors to appear..."
+          sleep 60
+          echo "=== Pod Status (expect ImagePullBackOff / ErrImagePull) ==="
+          kubectl get pods -l scenario=09-imagepullbackoff
+          echo ""
+          echo "=== Bad-image pod events ==="
+          kubectl describe pods -l app=scenario-09-bad-image \
+            | grep -A 20 "Events:" || true
+          echo ""
+          echo "=== Missing-secret pod events ==="
+          kubectl describe pods -l app=scenario-09-missing-secret \
+            | grep -A 20 "Events:" || true

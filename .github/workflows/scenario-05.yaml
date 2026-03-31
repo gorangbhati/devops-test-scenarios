@@ -1,0 +1,152 @@
+name: Scenario 05 – PVC Stuck in Pending
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "scenarios/05-pvc-pending/**"
+      - ".github/workflows/scenario-05.yaml"
+  pull_request:
+    paths:
+      - "scenarios/05-pvc-pending/**"
+      - ".github/workflows/scenario-05.yaml"
+  workflow_dispatch:
+
+env:
+  SCENARIO: "05-pvc-pending"
+  IMAGE_NAME: "scenario-05-pvc-pending"
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Job 1: Lint / unit-test the application code
+  # ─────────────────────────────────────────────
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install pytest
+
+      - name: Run unit tests
+        run: pytest scenarios/05-pvc-pending/tests/ -v
+
+  # ──────────────────────────────────────────────────────
+  # Job 2: Build Docker image and push to Artifact Registry
+  # ──────────────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ secrets.GAR_LOCATION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        id: meta
+        env:
+          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
+        run: |
+          IMAGE="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/${IMAGE_NAME}"
+          TAG="${IMAGE}:${{ github.sha }}"
+          LATEST="${IMAGE}:latest"
+          docker build -t "${TAG}" -t "${LATEST}" scenarios/05-pvc-pending/app/
+          docker push "${TAG}"
+          docker push "${LATEST}"
+          echo "image=${TAG}" >> "$GITHUB_OUTPUT"
+
+  # ──────────────────────────────────────────
+  # Job 3: Deploy to GKE
+  # ──────────────────────────────────────────
+  deploy:
+    name: Deploy to GKE
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
+          location: ${{ secrets.GKE_CLUSTER_ZONE }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Substitute image in deployment manifest
+        env:
+          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
+        run: |
+          REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
+          sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
+            scenarios/05-pvc-pending/k8s/deployment.yaml
+
+      - name: Apply manifests (PVC with bad StorageClass → stuck in Pending)
+        run: |
+          kubectl apply -f scenarios/05-pvc-pending/k8s/pvc.yaml
+          kubectl apply -f scenarios/05-pvc-pending/k8s/configmap.yaml
+          kubectl apply -f scenarios/05-pvc-pending/k8s/deployment.yaml
+          kubectl apply -f scenarios/05-pvc-pending/k8s/service.yaml
+
+      - name: Show PVC and pod status
+        run: |
+          echo "=== PVC Status (expect Pending) ==="
+          kubectl get pvc scenario-05-data -o wide || true
+          echo ""
+          echo "=== Pod Status (expect Pending) ==="
+          kubectl get pods -l scenario=05-pvc-pending
+          echo ""
+          echo "=== PVC Events ==="
+          kubectl describe pvc scenario-05-data | grep -A 20 "Events:" || true
+          echo ""
+          echo "=== Pod Events ==="
+          POD=$(kubectl get pods -l scenario=05-pvc-pending \
+                  -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+          if [ -n "${POD}" ]; then
+            kubectl describe pod "${POD}" | grep -A 10 "Events:" || true
+          fi

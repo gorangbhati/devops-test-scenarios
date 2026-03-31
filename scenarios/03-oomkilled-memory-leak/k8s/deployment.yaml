@@ -1,0 +1,50 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-03-oomkilled
+  namespace: default
+  labels:
+    scenario: "03-oomkilled-memory-leak"
+    app: scenario-03
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-03
+  template:
+    metadata:
+      labels:
+        app: scenario-03
+        scenario: "03-oomkilled-memory-leak"
+    spec:
+      containers:
+        - name: app
+          image: REGISTRY_PLACEHOLDER/scenario-03-oomkilled-memory-leak:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: scenario-03-config
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "32Mi"
+            limits:
+              cpu: "200m"
+              # Intentionally tight memory limit — 3 × /leak requests (10MB each)
+              # will cause the OOM killer to terminate the container.
+              memory: "32Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+      restartPolicy: Always

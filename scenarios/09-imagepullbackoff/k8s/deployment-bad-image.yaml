@@ -1,0 +1,45 @@
+---
+# Scenario 09a: Bad image name — triggers ErrImagePull / ImagePullBackOff.
+#
+# The image reference is deliberately invalid:
+#   - The registry does not exist
+#   - The repository and tag are fictitious
+#
+# Observed symptoms:
+#   kubectl get pods → STATUS = ImagePullBackOff or ErrImagePull
+#   kubectl describe pod → Events show "Failed to pull image: ... not found"
+#
+# Fix: correct the image name to a valid, accessible image reference.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-09-bad-image
+  namespace: default
+  labels:
+    scenario: "09-imagepullbackoff"
+    variant: bad-image-name
+    app: scenario-09-bad-image
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-09-bad-image
+  template:
+    metadata:
+      labels:
+        app: scenario-09-bad-image
+        scenario: "09-imagepullbackoff"
+    spec:
+      containers:
+        - name: app
+          # BUG: this image does not exist in any registry
+          image: this-registry-does-not-exist.example.com/nonexistent-org/app:v999.999.999
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"

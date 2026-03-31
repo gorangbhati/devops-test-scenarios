@@ -1,0 +1,48 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-02-n-plus-one
+  namespace: default
+  labels:
+    scenario: "02-api-latency-n-plus-one"
+    app: scenario-02
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-02
+  template:
+    metadata:
+      labels:
+        app: scenario-02
+        scenario: "02-api-latency-n-plus-one"
+    spec:
+      containers:
+        - name: app
+          image: REGISTRY_PLACEHOLDER/scenario-02-api-latency-n-plus-one:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: scenario-02-config
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+      restartPolicy: Always

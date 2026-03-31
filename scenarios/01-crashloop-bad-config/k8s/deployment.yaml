@@ -1,0 +1,58 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-01-crashloop
+  namespace: default
+  labels:
+    scenario: "01-crashloop-bad-config"
+    app: scenario-01
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-01
+  template:
+    metadata:
+      labels:
+        app: scenario-01
+        scenario: "01-crashloop-bad-config"
+    spec:
+      containers:
+        - name: app
+          # Image is built by the GitHub Actions workflow and pushed to Artifact Registry.
+          # The workflow substitutes the full image path at deploy time.
+          image: REGISTRY_PLACEHOLDER/scenario-01-crashloop-bad-config:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: scenario-01-config
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          # NOTE: These probes are intentionally included to show the healthy state
+          # of the application.  In this scenario the app exits with code 1 before
+          # the HTTP server ever starts, so the probes never execute — Kubernetes
+          # enters CrashLoopBackOff solely because of the non-zero exit code.
+          # Once the ConfigMap is fixed with valid values, the probes become active
+          # and will report healthy on port 8080.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            failureThreshold: 3
+      restartPolicy: Always

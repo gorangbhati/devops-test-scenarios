@@ -1,0 +1,13 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scenario-10-config
+  namespace: default
+  labels:
+    scenario: "10-liveness-probe-failure"
+data:
+  APP_PORT: "8080"
+  # Number of /work requests before the deadlock is triggered.
+  # After DEADLOCK_AFTER+1 requests, /healthz will block indefinitely.
+  DEADLOCK_AFTER: "5"

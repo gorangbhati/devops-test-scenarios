@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scenario-07-config
+  namespace: default
+  labels:
+    scenario: "07-dns-resolution-failure"
+data:
+  APP_PORT: "8080"
+  # UPSTREAM_HOST is the hostname the app tries to resolve on each /dns-check request.
+  # In a normal cluster this resolves fine. To simulate DNS failure, apply the
+  # broken CoreDNS ConfigMap (see README.md) or point to an unresolvable name.
+  UPSTREAM_HOST: "kubernetes.default.svc.cluster.local"

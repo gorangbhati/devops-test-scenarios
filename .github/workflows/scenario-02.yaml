@@ -1,0 +1,157 @@
+name: Scenario 02 – API Latency N+1 Queries
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "scenarios/02-api-latency-n-plus-one/**"
+      - ".github/workflows/scenario-02.yaml"
+  pull_request:
+    paths:
+      - "scenarios/02-api-latency-n-plus-one/**"
+      - ".github/workflows/scenario-02.yaml"
+  workflow_dispatch:
+
+env:
+  SCENARIO: "02-api-latency-n-plus-one"
+  IMAGE_NAME: "scenario-02-api-latency-n-plus-one"
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Job 1: Lint / unit-test the application code
+  # ─────────────────────────────────────────────
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: scenarios/02-api-latency-n-plus-one/app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: scenarios/02-api-latency-n-plus-one/app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+  # ──────────────────────────────────────────────────────
+  # Job 2: Build Docker image and push to Artifact Registry
+  # ──────────────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ secrets.GAR_LOCATION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        id: meta
+        env:
+          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
+        run: |
+          IMAGE="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/${IMAGE_NAME}"
+          TAG="${IMAGE}:${{ github.sha }}"
+          LATEST="${IMAGE}:latest"
+
+          docker build -t "${TAG}" -t "${LATEST}" \
+            scenarios/02-api-latency-n-plus-one/app/
+
+          docker push "${TAG}"
+          docker push "${LATEST}"
+
+          echo "image=${TAG}" >> "$GITHUB_OUTPUT"
+
+  # ──────────────────────────────────────────
+  # Job 3: Deploy to GKE
+  # ──────────────────────────────────────────
+  deploy:
+    name: Deploy to GKE
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
+          location: ${{ secrets.GKE_CLUSTER_ZONE }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Substitute image in deployment manifest
+        env:
+          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
+        run: |
+          REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
+          sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
+            scenarios/02-api-latency-n-plus-one/k8s/deployment.yaml
+
+      - name: Apply manifests
+        run: |
+          kubectl apply -f scenarios/02-api-latency-n-plus-one/k8s/configmap.yaml
+          kubectl apply -f scenarios/02-api-latency-n-plus-one/k8s/deployment.yaml
+          kubectl apply -f scenarios/02-api-latency-n-plus-one/k8s/service.yaml
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/scenario-02-n-plus-one --timeout=120s
+
+      - name: Demonstrate N+1 vs optimized query counts
+        run: |
+          POD=$(kubectl get pods -l scenario=02-api-latency-n-plus-one \
+                  -o jsonpath='{.items[0].metadata.name}')
+          echo "=== N+1 endpoint (expect X-Query-Count: 51) ==="
+          kubectl exec "${POD}" -- wget -qS http://localhost:3000/api/orders -O /dev/null 2>&1 \
+            | grep -i x-query-count || true
+          echo "=== Optimized endpoint (expect X-Query-Count: 1) ==="
+          kubectl exec "${POD}" -- wget -qS http://localhost:3000/api/orders/optimized -O /dev/null 2>&1 \
+            | grep -i x-query-count || true
