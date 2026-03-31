@@ -1,0 +1,13 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scenario-02-config
+  namespace: default
+  labels:
+    scenario: "02-api-latency-n-plus-one"
+data:
+  # Port the HTTP server listens on
+  APP_PORT: "3000"
+  # Number of seed orders to create on startup (increase to amplify latency)
+  ORDER_COUNT: "50"

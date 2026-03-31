@@ -1,0 +1,96 @@
+---
+# ── Backend Deployment ─────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-04-backend
+  namespace: default
+  labels:
+    scenario: "04-connection-refused"
+    app: scenario-04-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-04-backend
+  template:
+    metadata:
+      labels:
+        app: scenario-04-backend
+        scenario: "04-connection-refused"
+    spec:
+      containers:
+        - name: backend
+          image: REGISTRY_PLACEHOLDER/scenario-04-backend:latest
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: scenario-04-backend-config
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 5000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+---
+# ── Frontend Deployment ────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-04-frontend
+  namespace: default
+  labels:
+    scenario: "04-connection-refused"
+    app: scenario-04-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-04-frontend
+  template:
+    metadata:
+      labels:
+        app: scenario-04-frontend
+        scenario: "04-connection-refused"
+    spec:
+      containers:
+        - name: frontend
+          image: REGISTRY_PLACEHOLDER/scenario-04-frontend:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: scenario-04-frontend-config
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5

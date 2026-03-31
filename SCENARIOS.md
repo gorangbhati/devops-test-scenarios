@@ -7,9 +7,9 @@ This repository contains test applications and Kubernetes manifests designed for
 | # | Scenario | Status | App Language | Directory |
 |---|----------|--------|--------------|-----------|
 | 01 | [CrashLoop due to Bad Config](#01-crashloop-due-to-bad-config) | ✅ Implemented | Python | `scenarios/01-crashloop-bad-config/` |
-| 02 | [API Latency – N+1 Database Queries](#02-api-latency--n1-database-queries) | 📋 Planned | Node.js | `scenarios/02-api-latency-n-plus-one/` |
-| 03 | [Container OOMKilled – Memory Leak](#03-container-oomkilled--memory-leak) | 📋 Planned | Go | `scenarios/03-oomkilled-memory-leak/` |
-| 04 | [Connection Refused to Internal Microservice](#04-connection-refused-to-internal-microservice) | 📋 Planned | Python | `scenarios/04-connection-refused/` |
+| 02 | [API Latency – N+1 Database Queries](#02-api-latency--n1-database-queries) | ✅ Implemented | Node.js | `scenarios/02-api-latency-n-plus-one/` |
+| 03 | [Container OOMKilled – Memory Leak](#03-container-oomkilled--memory-leak) | ✅ Implemented | Go | `scenarios/03-oomkilled-memory-leak/` |
+| 04 | [Connection Refused to Internal Microservice](#04-connection-refused-to-internal-microservice) | ✅ Implemented | Python | `scenarios/04-connection-refused/` |
 | 05 | [PVC Stuck in Pending](#05-pvc-stuck-in-pending) | 📋 Planned | Any | `scenarios/05-pvc-pending/` |
 | 06 | [TLS Handshake Failures – Wrong Secret in Ingress](#06-tls-handshake-failures--wrong-secret-in-ingress) | 📋 Planned | Node.js | `scenarios/06-tls-ingress-failure/` |
 | 07 | [Pods Can't Resolve DNS](#07-pods-cant-resolve-dns) | 📋 Planned | Python | `scenarios/07-dns-resolution-failure/` |

@@ -1,0 +1,34 @@
+---
+# ── Backend Service ────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: scenario-04-backend
+  namespace: default
+  labels:
+    scenario: "04-connection-refused"
+spec:
+  selector:
+    app: scenario-04-backend
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+  type: ClusterIP
+---
+# ── Frontend Service ───────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: scenario-04-frontend
+  namespace: default
+  labels:
+    scenario: "04-connection-refused"
+spec:
+  selector:
+    app: scenario-04-frontend
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP

@@ -10,6 +10,15 @@ build/
 venv/
 env/
 
+# Node.js
+node_modules/
+npm-debug.log*
+
+# Go
+*.test
+*.out
+vendor/
+
 # OS
 .DS_Store
 

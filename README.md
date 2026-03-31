@@ -8,11 +8,10 @@ Each scenario lives in its own directory under `scenarios/` and is self-containe
 
 ```
 scenarios/
-└── 01-crashloop-bad-config/   # CrashLoopBackOff caused by invalid env vars
-    ├── app/                   # Python application + Dockerfile
-    ├── k8s/                   # Kubernetes manifests (ConfigMap + Deployment)
-    ├── tests/                 # Unit tests
-    └── README.md              # Scenario-specific instructions
+├── 01-crashloop-bad-config/       # CrashLoopBackOff caused by invalid env vars (Python)
+├── 02-api-latency-n-plus-one/     # High latency from N+1 database queries (Node.js)
+├── 03-oomkilled-memory-leak/      # OOMKilled container from unbounded memory leak (Go)
+└── 04-connection-refused/         # 502 errors from wrong internal service URL (Python)
 ```
 
 See [SCENARIOS.md](SCENARIOS.md) for the full list of scenarios and GCP deployment configuration.
