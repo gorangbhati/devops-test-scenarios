@@ -1,0 +1,48 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-07-dns-check
+  namespace: default
+  labels:
+    scenario: "07-dns-resolution-failure"
+    app: scenario-07
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-07
+  template:
+    metadata:
+      labels:
+        app: scenario-07
+        scenario: "07-dns-resolution-failure"
+    spec:
+      containers:
+        - name: app
+          image: REGISTRY_PLACEHOLDER/scenario-07-dns-resolution-failure:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: scenario-07-config
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+      restartPolicy: Always

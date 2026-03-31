@@ -1,0 +1,141 @@
+name: Scenario 08 – Pods Stuck in Pending (Scheduler)
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "scenarios/08-pods-pending-scheduler/**"
+      - ".github/workflows/scenario-08.yaml"
+  pull_request:
+    paths:
+      - "scenarios/08-pods-pending-scheduler/**"
+      - ".github/workflows/scenario-08.yaml"
+  workflow_dispatch:
+
+env:
+  SCENARIO: "08-pods-pending-scheduler"
+  IMAGE_NAME: "scenario-08-pods-pending-scheduler"
+
+jobs:
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install pytest
+
+      - name: Run unit tests
+        run: pytest scenarios/08-pods-pending-scheduler/tests/ -v
+
+  build-and-push:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ secrets.GAR_LOCATION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        id: meta
+        env:
+          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
+        run: |
+          IMAGE="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/${IMAGE_NAME}"
+          TAG="${IMAGE}:${{ github.sha }}"
+          LATEST="${IMAGE}:latest"
+          docker build -t "${TAG}" -t "${LATEST}" scenarios/08-pods-pending-scheduler/app/
+          docker push "${TAG}"
+          docker push "${LATEST}"
+          echo "image=${TAG}" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy to GKE
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
+          location: ${{ secrets.GKE_CLUSTER_ZONE }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Substitute image in deployment manifest
+        env:
+          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
+        run: |
+          REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
+          sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
+            scenarios/08-pods-pending-scheduler/k8s/deployment.yaml
+
+      - name: Apply manifests (impossible scheduling constraints → Pending)
+        run: |
+          kubectl apply -f scenarios/08-pods-pending-scheduler/k8s/deployment.yaml
+          kubectl apply -f scenarios/08-pods-pending-scheduler/k8s/service.yaml
+
+      - name: Show pod and scheduler events
+        run: |
+          echo "Waiting 30 seconds for pod to be stuck in Pending..."
+          sleep 30
+          echo "=== Pod Status (expect Pending) ==="
+          kubectl get pods -l scenario=08-pods-pending-scheduler
+          echo ""
+          echo "=== Scheduler Events ==="
+          POD=$(kubectl get pods -l scenario=08-pods-pending-scheduler \
+                  -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+          if [ -n "${POD}" ]; then
+            kubectl describe pod "${POD}" | grep -A 15 "Events:"
+          fi
+          echo ""
+          echo "=== Available Nodes (for comparison) ==="
+          kubectl get nodes -o wide
+          kubectl describe nodes | grep -E "(Capacity|Allocatable|cpu|memory)" | head -20

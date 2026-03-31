@@ -10,12 +10,12 @@ This repository contains test applications and Kubernetes manifests designed for
 | 02 | [API Latency – N+1 Database Queries](#02-api-latency--n1-database-queries) | ✅ Implemented | Node.js | `scenarios/02-api-latency-n-plus-one/` |
 | 03 | [Container OOMKilled – Memory Leak](#03-container-oomkilled--memory-leak) | ✅ Implemented | Go | `scenarios/03-oomkilled-memory-leak/` |
 | 04 | [Connection Refused to Internal Microservice](#04-connection-refused-to-internal-microservice) | ✅ Implemented | Python | `scenarios/04-connection-refused/` |
-| 05 | [PVC Stuck in Pending](#05-pvc-stuck-in-pending) | 📋 Planned | Any | `scenarios/05-pvc-pending/` |
+| 05 | [PVC Stuck in Pending](#05-pvc-stuck-in-pending) | ✅ Implemented | Python | `scenarios/05-pvc-pending/` |
 | 06 | [TLS Handshake Failures – Wrong Secret in Ingress](#06-tls-handshake-failures--wrong-secret-in-ingress) | 📋 Planned | Node.js | `scenarios/06-tls-ingress-failure/` |
-| 07 | [Pods Can't Resolve DNS](#07-pods-cant-resolve-dns) | 📋 Planned | Python | `scenarios/07-dns-resolution-failure/` |
-| 08 | [Pods Stuck in Pending – Scheduler Failures](#08-pods-stuck-in-pending--scheduler-failures) | 📋 Planned | Any | `scenarios/08-pods-pending-scheduler/` |
-| 09 | [ImagePullBackOff – Bad Image / Missing Credentials](#09-imagepullbackoff--bad-image--missing-credentials) | 📋 Planned | Any | `scenarios/09-imagepullbackoff/` |
-| 10 | [Liveness Probe Failure – App Deadlock](#10-liveness-probe-failure--app-deadlock) | 📋 Planned | Go | `scenarios/10-liveness-probe-failure/` |
+| 07 | [Pods Can't Resolve DNS](#07-pods-cant-resolve-dns) | ✅ Implemented | Python | `scenarios/07-dns-resolution-failure/` |
+| 08 | [Pods Stuck in Pending – Scheduler Failures](#08-pods-stuck-in-pending--scheduler-failures) | ✅ Implemented | Python | `scenarios/08-pods-pending-scheduler/` |
+| 09 | [ImagePullBackOff – Bad Image / Missing Credentials](#09-imagepullbackoff--bad-image--missing-credentials) | ✅ Implemented | k8s manifests | `scenarios/09-imagepullbackoff/` |
+| 10 | [Liveness Probe Failure – App Deadlock](#10-liveness-probe-failure--app-deadlock) | ✅ Implemented | Go | `scenarios/10-liveness-probe-failure/` |
 | 11 | [Resource Quota Exceeded](#11-resource-quota-exceeded) | 📋 Planned | Any | `scenarios/11-resource-quota-exceeded/` |
 | 12 | [Rolling Update Stuck – Unhealthy New Version](#12-rolling-update-stuck--unhealthy-new-version) | 📋 Planned | Node.js | `scenarios/12-rolling-update-stuck/` |
 | 13 | [HPA Not Scaling – Missing Metrics Server](#13-hpa-not-scaling--missing-metrics-server) | 📋 Planned | Python | `scenarios/13-hpa-not-scaling/` |

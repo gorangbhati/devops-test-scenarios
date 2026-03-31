@@ -1,0 +1,161 @@
+name: Scenario 07 – DNS Resolution Failure
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "scenarios/07-dns-resolution-failure/**"
+      - ".github/workflows/scenario-07.yaml"
+  pull_request:
+    paths:
+      - "scenarios/07-dns-resolution-failure/**"
+      - ".github/workflows/scenario-07.yaml"
+  workflow_dispatch:
+
+env:
+  SCENARIO: "07-dns-resolution-failure"
+  IMAGE_NAME: "scenario-07-dns-resolution-failure"
+
+jobs:
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install pytest
+
+      - name: Run unit tests
+        run: pytest scenarios/07-dns-resolution-failure/tests/ -v
+
+  build-and-push:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ secrets.GAR_LOCATION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        id: meta
+        env:
+          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
+        run: |
+          IMAGE="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/${IMAGE_NAME}"
+          TAG="${IMAGE}:${{ github.sha }}"
+          LATEST="${IMAGE}:latest"
+          docker build -t "${TAG}" -t "${LATEST}" scenarios/07-dns-resolution-failure/app/
+          docker push "${TAG}"
+          docker push "${LATEST}"
+          echo "image=${TAG}" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy to GKE
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
+          location: ${{ secrets.GKE_CLUSTER_ZONE }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Substitute image in deployment manifest
+        env:
+          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
+        run: |
+          REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
+          sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
+            scenarios/07-dns-resolution-failure/k8s/deployment.yaml
+
+      - name: Deploy app (normal DNS)
+        run: |
+          kubectl apply -f scenarios/07-dns-resolution-failure/k8s/configmap.yaml
+          kubectl apply -f scenarios/07-dns-resolution-failure/k8s/deployment.yaml
+          kubectl apply -f scenarios/07-dns-resolution-failure/k8s/service.yaml
+          kubectl rollout status deployment/scenario-07-dns-check --timeout=120s
+
+      - name: Show healthy DNS check
+        run: |
+          POD=$(kubectl get pods -l scenario=07-dns-resolution-failure \
+                  -o jsonpath='{.items[0].metadata.name}')
+          echo "=== DNS check (healthy) ==="
+          kubectl exec "${POD}" -- python3 -c "
+          import urllib.request, json
+          r = urllib.request.urlopen('http://localhost:8080/dns-check')
+          print(json.loads(r.read()))
+          " || true
+
+      - name: Apply broken CoreDNS (triggers DNS failure)
+        run: |
+          echo "⚠️  Applying broken CoreDNS ConfigMap — DNS will fail for ~30s"
+          kubectl apply -f scenarios/07-dns-resolution-failure/k8s/broken-coredns-configmap.yaml
+          kubectl rollout restart deployment/coredns -n kube-system
+          sleep 15
+
+      - name: Show DNS failure
+        run: |
+          POD=$(kubectl get pods -l scenario=07-dns-resolution-failure \
+                  -o jsonpath='{.items[0].metadata.name}')
+          echo "=== DNS check (broken — expect resolved: false) ==="
+          kubectl exec "${POD}" -- python3 -c "
+          import urllib.request, json
+          r = urllib.request.urlopen('http://localhost:8080/dns-check')
+          print(json.loads(r.read()))
+          " 2>&1 || true
+
+      - name: Restore healthy CoreDNS
+        if: always()
+        run: |
+          kubectl apply -f scenarios/07-dns-resolution-failure/k8s/healthy-coredns-configmap.yaml
+          kubectl rollout restart deployment/coredns -n kube-system
+          echo "CoreDNS restored to healthy state"

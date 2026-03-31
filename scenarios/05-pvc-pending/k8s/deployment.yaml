@@ -1,0 +1,57 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-05-pvc-pending
+  namespace: default
+  labels:
+    scenario: "05-pvc-pending"
+    app: scenario-05
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-05
+  template:
+    metadata:
+      labels:
+        app: scenario-05
+        scenario: "05-pvc-pending"
+    spec:
+      containers:
+        - name: app
+          image: REGISTRY_PLACEHOLDER/scenario-05-pvc-pending:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: scenario-05-config
+          volumeMounts:
+            - name: data-volume
+              mountPath: /data
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            # References the PVC that is stuck in Pending.
+            # This causes the pod to also remain in Pending state.
+            claimName: scenario-05-data
+      restartPolicy: Always

@@ -1,0 +1,23 @@
+---
+# PersistentVolumeClaim with a non-existent StorageClass.
+# This is the intentional bug: "non-existent-storage-class" does not exist,
+# so the PVC will remain in Pending state indefinitely, and any pod that
+# references it will also be stuck in Pending.
+#
+# Fix: change storageClassName to an available storage class
+#      (e.g., "standard" on GKE, or "hostpath" on local clusters).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: scenario-05-data
+  namespace: default
+  labels:
+    scenario: "05-pvc-pending"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  # BUG: this StorageClass does not exist — PVC will stay in Pending
+  storageClassName: non-existent-storage-class
+  resources:
+    requests:
+      storage: 1Gi
