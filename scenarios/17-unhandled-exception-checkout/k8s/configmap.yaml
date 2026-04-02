@@ -1,0 +1,11 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scenario-17-config
+  namespace: default
+  labels:
+    scenario: "17-unhandled-exception-checkout"
+data:
+  # Port the HTTP server listens on
+  APP_PORT: "8080"
