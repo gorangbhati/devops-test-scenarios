@@ -1,0 +1,51 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-16-bg-panic
+  namespace: default
+  labels:
+    scenario: "16-background-goroutine-panic"
+    app: scenario-16
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-16
+  template:
+    metadata:
+      labels:
+        app: scenario-16
+        scenario: "16-background-goroutine-panic"
+    spec:
+      containers:
+        - name: app
+          image: REGISTRY_PLACEHOLDER/scenario-16-background-goroutine-panic:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: scenario-16-config
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 3
+      restartPolicy: Always

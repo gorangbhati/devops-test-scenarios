@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scenario-17-checkout
+  namespace: default
+  labels:
+    scenario: "17-unhandled-exception-checkout"
+spec:
+  selector:
+    app: scenario-17
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP

@@ -16,7 +16,9 @@ scenarios/
 ├── 07-dns-resolution-failure/     # DNS failures from broken CoreDNS config (Python)
 ├── 08-pods-pending-scheduler/     # Pod Pending from impossible nodeSelector + resources (Python)
 ├── 09-imagepullbackoff/           # ImagePullBackOff: bad image name or missing pull secret (k8s)
-└── 10-liveness-probe-failure/     # Liveness probe timeouts from app mutex deadlock (Go)
+├── 10-liveness-probe-failure/     # Liveness probe timeouts from app mutex deadlock (Go)
+├── 16-background-goroutine-panic/ # CrashLoopBackOff: background goroutine panics on empty slice (Go)
+└── 17-unhandled-exception-checkout/ # HTTP 500: unhandled KeyError on uppercase region code (Python)
 ```
 
 See [SCENARIOS.md](SCENARIOS.md) for the full list of scenarios and GCP deployment configuration.

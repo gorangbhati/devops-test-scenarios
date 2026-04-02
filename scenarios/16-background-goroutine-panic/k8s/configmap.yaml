@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scenario-16-config
+  namespace: default
+  labels:
+    scenario: "16-background-goroutine-panic"
+data:
+  # Port the HTTP server listens on
+  APP_PORT: "8080"
+  # Number of scores to seed on startup (set to 0 to start with an empty store)
+  SEED_SCORES: "10"
+  # How often (seconds) the background stats goroutine recomputes aggregates.
+  # After a season reset (DELETE /api/scores), the next tick triggers the panic.
+  STATS_INTERVAL_SEC: "30"

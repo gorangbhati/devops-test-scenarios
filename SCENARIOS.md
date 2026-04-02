@@ -21,6 +21,8 @@ This repository contains test applications and Kubernetes manifests designed for
 | 13 | [HPA Not Scaling – Missing Metrics Server](#13-hpa-not-scaling--missing-metrics-server) | 📋 Planned | Python | `scenarios/13-hpa-not-scaling/` |
 | 14 | [Secret Not Mounted – App Fails to Start](#14-secret-not-mounted--app-fails-to-start) | 📋 Planned | Python | `scenarios/14-secret-not-mounted/` |
 | 15 | [Network Policy Blocking Traffic](#15-network-policy-blocking-traffic) | 📋 Planned | Node.js | `scenarios/15-network-policy-block/` |
+| 16 | [Background Goroutine Panic – Empty Slice Out-of-Bounds](#16-background-goroutine-panic--empty-slice-out-of-bounds) | ✅ Implemented | Go | `scenarios/16-background-goroutine-panic/` |
+| 17 | [Checkout 500 – Unhandled KeyError on Uppercase Region](#17-checkout-500--unhandled-keyerror-on-uppercase-region) | ✅ Implemented | Python | `scenarios/17-unhandled-exception-checkout/` |
 
 ---
 
@@ -248,6 +250,44 @@ This repository contains test applications and Kubernetes manifests designed for
 **Root Cause:** A default-deny NetworkPolicy is active and the new service has no matching allow rule.
 
 **Resolution:** Add an appropriate NetworkPolicy rule to allow traffic to the new service.
+
+---
+
+### 16: Background Goroutine Panic – Empty Slice Out-of-Bounds
+
+**Problem:** A Go game-score service runs a background goroutine that periodically computes aggregate statistics (min, max, average). The `computeStats` helper accesses `scores[0]` and `scores[n-1]` without guarding against an empty slice. The HTTP handler for `/api/scores/stats` has the empty-store guard, but the goroutine does not. After a season reset (`DELETE /api/scores`) the next background tick panics:
+
+```
+panic: runtime error: index out of range [0] with length 0
+```
+
+Because the panic occurs in a goroutine started from `main()` — not an HTTP handler goroutine — `net/http`'s built-in recovery does not apply and the process exits.
+
+**Symptoms:**
+- Pod enters `CrashLoopBackOff` roughly `STATS_INTERVAL_SEC` seconds after the season reset
+- `kubectl logs --previous` shows the panic stack trace pointing to `computeStats` → `statsLoop`
+- `GET /api/scores/stats` responds correctly (`{"count":0}`) before the crash — misleading responders into thinking the code handles empty stores
+- Pod restarts fine (re-seeds scores) but crashes again if reset is triggered
+
+**Root Cause:** `computeStats` assumes a non-empty input slice; the background goroutine calls it unconditionally. Test runs completed before the 30-second background tick, so the path was never exercised.
+
+**Resolution:** Add `if len(scores) == 0 { continue }` in `statsLoop`, or add the guard inside `computeStats` itself.
+
+---
+
+### 17: Checkout 500 – Unhandled KeyError on Uppercase Region
+
+**Problem:** A Python Flask checkout service stores tax rates in a dict keyed by lowercase region codes (`"us"`, `"eu"`, etc.). The `_get_tax_rate()` helper does a plain dict lookup without normalising the input to lowercase. When a mobile-app update starts sending uppercase region codes (`"US"`, `"EU"`, etc.), the lookup raises a `KeyError`. The checkout handler catches `ValueError` and `TypeError` for item validation, but not `KeyError` — Flask converts it to HTTP 500 for every affected request.
+
+**Symptoms:**
+- HTTP 500 error rate spikes on `POST /api/checkout`; pod stays alive (no restarts)
+- `kubectl logs` shows repeated `KeyError: 'US'` tracebacks pointing to `_get_tax_rate` → `TAX_RATES[region]`
+- Errors affect only mobile-app clients (after the update); web clients using lowercase codes are unaffected
+- Liveness/readiness probes continue to pass
+
+**Root Cause:** Missing `.lower()` normalisation in `_get_tax_rate`. QA always used lowercase region codes matching the API spec; the mobile-app change to uppercase reached production after the test cycle.
+
+**Resolution:** Normalise the region code before the dict lookup — `TAX_RATES[region.lower()]` — and raise a descriptive `ValueError` for truly unsupported regions.
 
 ---
 
