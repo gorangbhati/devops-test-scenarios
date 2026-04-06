@@ -1,0 +1,9 @@
+{
+  "name": "scenario-12-rolling-update-stuck",
+  "version": "1.0.0",
+  "description": "Rolling update stuck scenario",
+  "main": "app.js",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

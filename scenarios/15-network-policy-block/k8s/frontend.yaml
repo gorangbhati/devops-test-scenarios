@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-15-frontend
+  namespace: test-scenerios
+  labels:
+    app: frontend15
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend15
+  template:
+    metadata:
+      labels:
+        app: frontend15
+    spec:
+      containers:
+        - name: frontend
+          image: us-central1-docker.pkg.dev/lunar-parsec-457813-u5/test-scenerio-kloudmate/scenario-15-frontend:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: BACKEND_URL
+              value: "http://scenario-15-backend:8080"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scenario-15-frontend
+  namespace: test-scenerios
+spec:
+  selector:
+    app: frontend15
+  ports:
+    - port: 8080
+      targetPort: 8080

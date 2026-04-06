@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-14-secret
+  namespace: test-scenerios
+  labels:
+    scenario: "14-secret-not-mounted"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-14
+  template:
+    metadata:
+      labels:
+        app: scenario-14
+    spec:
+      containers:
+      - name: app
+        image: us-central1-docker.pkg.dev/lunar-parsec-457813-u5/test-scenerio-kloudmate/scenario-14-secret-not-mounted:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: missing-secret
+              key: api-key

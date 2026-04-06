@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-13-hpa
+  namespace: test-scenerios
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-13
+  template:
+    metadata:
+      labels:
+        app: scenario-13
+    spec:
+      containers:
+      - name: app
+        image: us-central1-docker.pkg.dev/lunar-parsec-457813-u5/test-scenerio-kloudmate/scenario-13-hpa-not-scaling:latest
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"

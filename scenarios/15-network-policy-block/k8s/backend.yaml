@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-15-backend
+  namespace: test-scenerios
+  labels:
+    app: backend15
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend15
+  template:
+    metadata:
+      labels:
+        app: backend15
+    spec:
+      containers:
+        - name: backend
+          image: us-central1-docker.pkg.dev/lunar-parsec-457813-u5/test-scenerio-kloudmate/scenario-15-backend:latest
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scenario-15-backend
+  namespace: test-scenerios
+spec:
+  selector:
+    app: backend15
+  ports:
+    - port: 8080
+      targetPort: 8080
