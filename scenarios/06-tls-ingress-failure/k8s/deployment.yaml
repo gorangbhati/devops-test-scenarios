@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-06-tls
+  namespace: test-scenerios
+  labels:
+    scenario: "06-tls-ingress-failure"
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: scenario-06
+
+  template:
+    metadata:
+      labels:
+        app: scenario-06
+
+    spec:
+      containers:
+        - name: app
+          image: us-central1-docker.pkg.dev/lunar-parsec-457813-u5/test-scenerio-kloudmate/scenario-06-tls-ingress-failure:latest
+          ports:
+            - containerPort: 8080

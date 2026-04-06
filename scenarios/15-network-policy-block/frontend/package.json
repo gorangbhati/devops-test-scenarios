@@ -1,0 +1,10 @@
+{
+  "name": "scenario-15-frontend",
+  "version": "1.0.0",
+  "description": "Frontend service calling backend for network policy scenario",
+  "main": "app.js",
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0"
+  }
+}
