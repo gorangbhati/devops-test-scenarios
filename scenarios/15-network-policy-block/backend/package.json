@@ -1,0 +1,9 @@
+{
+  "name": "scenario-15-backend",
+  "version": "1.0.0",
+  "description": "Backend service for network policy block scenario",
+  "main": "app.js",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

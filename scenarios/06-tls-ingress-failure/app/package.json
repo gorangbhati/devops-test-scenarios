@@ -1,0 +1,9 @@
+{
+  "name": "scenario-06-tls-ingress-failure",
+  "version": "1.0.0",
+  "description": "TLS ingress failure scenario",
+  "main": "app.js",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: scenario-06-service
+  namespace: test-scenerios
+
+spec:
+  selector:
+    app: scenario-06
+
+  ports:
+    - port: 80
+      targetPort: 8080

@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scenario-11-quota
+  namespace: test-scenerios
+  labels:
+    scenario: "11-resource-quota-exceeded"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scenario-11
+  template:
+    metadata:
+      labels:
+        app: scenario-11
+    spec:
+      containers:
+      - name: app
+        image: us-central1-docker.pkg.dev/lunar-parsec-457813-u5/test-scenerio-kloudmate/scenario-11-resource-quota-exceeded:latest
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"

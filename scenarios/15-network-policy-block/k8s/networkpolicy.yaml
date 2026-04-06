@@ -1,0 +1,11 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: scenario-15-deny
+  namespace: test-scenerios
+spec:
+  podSelector:
+    matchLabels:
+      app: backend15
+  policyTypes:
+  - Ingress

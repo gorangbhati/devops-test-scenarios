@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: scenario-06-ingress
+  namespace: test-scenerios
+
+spec:
+  tls:
+    - hosts:
+        - tls-scenario.local
+      secretName: invalid-tls-secret
+
+  rules:
+    - host: tls-scenario.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: scenario-06-service
+                port:
+                  number: 80
