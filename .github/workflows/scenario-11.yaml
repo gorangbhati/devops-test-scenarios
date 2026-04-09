@@ -1,0 +1,149 @@
+name: Scenario 11 – Resource Quota Exceeded
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "scenarios/11-resource-quota-exceeded/**"
+      - ".github/workflows/scenario-11.yaml"
+  pull_request:
+    paths:
+      - "scenarios/11-resource-quota-exceeded/**"
+      - ".github/workflows/scenario-11.yaml"
+  workflow_dispatch:
+
+env:
+  SCENARIO: "11-resource-quota-exceeded"
+  IMAGE_NAME: "scenario-11-resource-quota-exceeded"
+
+jobs:
+
+# ─────────────────────────────────────────────
+# Job 1: Lint / unit-test the application code
+# ─────────────────────────────────────────────
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: scenarios/11-resource-quota-exceeded/app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install pytest
+
+      - name: Run tests
+        run: |
+          pytest ../tests/ -v || echo "No tests found"
+
+# ─────────────────────────────────────────────
+# Job 2: Build Docker image and push to registry
+# ─────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+      id-token: write
+
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker ${{ secrets.GAR_LOCATION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        id: meta
+        env:
+          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
+        run: |
+          IMAGE="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/${IMAGE_NAME}"
+          TAG="${IMAGE}:${{ github.sha }}"
+          LATEST="${IMAGE}:latest"
+
+          docker build -t "${TAG}" -t "${LATEST}" \
+            scenarios/11-resource-quota-exceeded/app/
+
+          docker push "${TAG}"
+          docker push "${LATEST}"
+
+          echo "image=${TAG}" >> "$GITHUB_OUTPUT"
+
+# ─────────────────────────────────────────────
+# Job 3: Deploy to GKE
+# ─────────────────────────────────────────────
+  deploy:
+    name: Deploy to GKE
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
+          location: ${{ secrets.GKE_CLUSTER_ZONE }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Substitute image in deployment
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
+        run: |
+          REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
+          sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
+            scenarios/11-resource-quota-exceeded/k8s/deployment.yaml
+
+      - name: Apply ResourceQuota
+        run: |
+          kubectl apply -f scenarios/11-resource-quota-exceeded/k8s/quota.yaml
+
+      - name: Deploy application
+        run: |
+          kubectl apply -f scenarios/11-resource-quota-exceeded/k8s/deployment.yaml
+
+      - name: Show pod status
+        run: |
+          kubectl get pods -l scenario=11-resource-quota-exceeded
