@@ -139,7 +139,8 @@ jobs:
         run: |
           echo "⚠️  Applying broken CoreDNS ConfigMap — DNS will fail for ~30s"
           kubectl apply -f scenarios/07-dns-resolution-failure/k8s/broken-coredns-configmap.yaml
-          kubectl rollout restart deployment/coredns -n kube-system
+          kubectl rollout restart deployment -n kube-system coredns || \
+          kubectl rollout restart deployment -n kube-system kube-dns
           sleep 15
 
       - name: Show DNS failure
@@ -157,5 +158,6 @@ jobs:
         if: always()
         run: |
           kubectl apply -f scenarios/07-dns-resolution-failure/k8s/healthy-coredns-configmap.yaml
-          kubectl rollout restart deployment/coredns -n kube-system
+          kubectl rollout restart deployment -n kube-system coredns || \
+          kubectl rollout restart deployment -n kube-system kube-dns
           echo "CoreDNS restored to healthy state"
