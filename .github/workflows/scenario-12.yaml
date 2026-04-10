@@ -1,15 +1,6 @@
 name: Scenario 12 – Rolling Update Stuck
 
 on:
-  push:
-    branches: [master, main]
-    paths:
-      - "scenarios/12-rolling-update-stuck/**"
-      - ".github/workflows/scenario-12.yaml"
-  pull_request:
-    paths:
-      - "scenarios/12-rolling-update-stuck/**"
-      - ".github/workflows/scenario-12.yaml"
   workflow_dispatch:
 
 env:
