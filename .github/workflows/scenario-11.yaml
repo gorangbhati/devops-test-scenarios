@@ -1,15 +1,6 @@
 name: Scenario 11 – Resource Quota Exceeded
 
 on:
-  push:
-    branches: [master, main]
-    paths:
-      - "scenarios/11-resource-quota-exceeded/**"
-      - ".github/workflows/scenario-11.yaml"
-  pull_request:
-    paths:
-      - "scenarios/11-resource-quota-exceeded/**"
-      - ".github/workflows/scenario-11.yaml"
   workflow_dispatch:
 
 env:
