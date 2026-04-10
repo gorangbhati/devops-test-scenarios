@@ -9,3 +9,4 @@ spec:
       app: backend15
   policyTypes:
   - Ingress
+  ingress: []
