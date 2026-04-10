@@ -1,15 +1,6 @@
 name: Scenario 13 – HPA Not Scaling
 
 on:
-  push:
-    branches: [master, main]
-    paths:
-      - "scenarios/13-hpa-not-scaling/**"
-      - ".github/workflows/scenario-13.yaml"
-  pull_request:
-    paths:
-      - "scenarios/13-hpa-not-scaling/**"
-      - ".github/workflows/scenario-13.yaml"
   workflow_dispatch:
 
 env:
