@@ -1,15 +1,6 @@
 name: Scenario 08 – Pods Stuck in Pending (Scheduler)
 
 on:
-  push:
-    branches: [master, main]
-    paths:
-      - "scenarios/08-pods-pending-scheduler/**"
-      - ".github/workflows/scenario-08.yaml"
-  pull_request:
-    paths:
-      - "scenarios/08-pods-pending-scheduler/**"
-      - ".github/workflows/scenario-08.yaml"
   workflow_dispatch:
 
 env:
