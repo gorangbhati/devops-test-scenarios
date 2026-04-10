@@ -1,15 +1,6 @@
 name: Scenario 05 – PVC Stuck in Pending
 
 on:
-  push:
-    branches: [master, main]
-    paths:
-      - "scenarios/05-pvc-pending/**"
-      - ".github/workflows/scenario-05.yaml"
-  pull_request:
-    paths:
-      - "scenarios/05-pvc-pending/**"
-      - ".github/workflows/scenario-05.yaml"
   workflow_dispatch:
 
 env:
