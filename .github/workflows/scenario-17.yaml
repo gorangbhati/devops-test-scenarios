@@ -124,7 +124,7 @@ jobs:
         run: |
           REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
           sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
-            scenarios/17-unhandled-exception-checkout/k8s/deployments.yaml
+            scenarios/17-unhandled-exception-checkout/k8s/deployment.yaml
 
       - name: Deploy scenario
         run: |
