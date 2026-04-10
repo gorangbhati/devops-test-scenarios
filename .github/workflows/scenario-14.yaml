@@ -134,7 +134,7 @@ jobs:
         run: |
           REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
           sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
-            scenarios/14-secret-not-mounted/k8s/deployment.yaml
+            scenarios/14-secret-not-mounted/k8s/secret.yaml
 
       - name: Apply Secret
         run: |
