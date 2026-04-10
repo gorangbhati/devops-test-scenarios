@@ -116,6 +116,16 @@ jobs:
           location: ${{ secrets.GKE_CLUSTER_ZONE }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
+      - name: Substitute images in deployment manifest
+        env:
+          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
+        run: |
+          REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
+          sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
+            scenarios/17-unhandled-exception-checkout/k8s/deployments.yaml
+
       - name: Deploy scenario
         run: |
           kubectl apply -f scenarios/17-unhandled-exception-checkout/k8s/
