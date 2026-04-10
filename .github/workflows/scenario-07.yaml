@@ -1,15 +1,6 @@
 name: Scenario 07 – DNS Resolution Failure
 
 on:
-  push:
-    branches: [master, main]
-    paths:
-      - "scenarios/07-dns-resolution-failure/**"
-      - ".github/workflows/scenario-07.yaml"
-  pull_request:
-    paths:
-      - "scenarios/07-dns-resolution-failure/**"
-      - ".github/workflows/scenario-07.yaml"
   workflow_dispatch:
 
 env:
