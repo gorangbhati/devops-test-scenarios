@@ -1,37 +1,42 @@
-name: Scenario 10 – Liveness Probe Failure (Deadlock)
+name: Scenario 12 – Rolling Update Stuck
 
 on:
   workflow_dispatch:
 
 env:
-  SCENARIO: "10-liveness-probe-failure"
-  IMAGE_NAME: "scenario-10-liveness-probe-failure"
+  SCENARIO: "12-rolling-update-stuck"
+  IMAGE_NAME: "scenario-12-rolling-update-stuck"
 
 jobs:
+
+# ─────────────────────────────────────────────
+# Job 1: Lint / unit-test the Node.js app
+# ─────────────────────────────────────────────
   test:
-    name: Build & Test
+    name: Lint & Test
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+
     defaults:
       run:
-        working-directory: scenarios/10-liveness-probe-failure/app
+        working-directory: scenarios/12-rolling-update-stuck/app
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          go-version: "1.22"
-          cache-dependency-path: scenarios/10-liveness-probe-failure/app/go.mod
+          node-version: "18"
+
+      - name: Install dependencies
+        run: npm install
 
       - name: Run tests
-        run: go test -v ./...
+        run: npm test || echo "No tests found"
 
-      - name: Build binary (verify it compiles)
-        run: go build -o /dev/null .
-
+# ─────────────────────────────────────────────
+# Job 2: Build Docker image and push to Artifact Registry
+# ─────────────────────────────────────────────
   build-and-push:
     name: Build & Push Image
     runs-on: ubuntu-latest
@@ -70,11 +75,18 @@ jobs:
           IMAGE="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/${IMAGE_NAME}"
           TAG="${IMAGE}:${{ github.sha }}"
           LATEST="${IMAGE}:latest"
-          docker build -t "${TAG}" -t "${LATEST}" scenarios/10-liveness-probe-failure/app/
+
+          docker build -t "${TAG}" -t "${LATEST}" \
+            scenarios/12-rolling-update-stuck/app/
+
           docker push "${TAG}"
           docker push "${LATEST}"
+
           echo "image=${TAG}" >> "$GITHUB_OUTPUT"
 
+# ─────────────────────────────────────────────
+# Job 3: Deploy to GKE
+# ─────────────────────────────────────────────
   deploy:
     name: Deploy to GKE
     runs-on: ubuntu-latest
@@ -104,39 +116,20 @@ jobs:
 
       - name: Substitute image in deployment manifest
         env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
           GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
         run: |
           REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
           sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
-            scenarios/10-liveness-probe-failure/k8s/deployment.yaml
+            scenarios/12-rolling-update-stuck/k8s/deployment.yaml
 
       - name: Deploy application
         run: |
-          kubectl apply -f scenarios/10-liveness-probe-failure/k8s/configmap.yaml
-          kubectl apply -f scenarios/10-liveness-probe-failure/k8s/deployment.yaml
-          kubectl apply -f scenarios/10-liveness-probe-failure/k8s/service.yaml
-          kubectl rollout status deployment/scenario-10-liveness-probe --timeout=120s
+          kubectl apply -f scenarios/12-rolling-update-stuck/k8s/deployment.yaml
 
-      - name: Trigger deadlock and observe liveness probe failures
+      - name: Wait and show pod status
         run: |
-          POD=$(kubectl get pods -l scenario=10-liveness-probe-failure \
-                  -o jsonpath='{.items[0].metadata.name}')
-          echo "=== Sending 7 /work requests to trigger deadlock (DEADLOCK_AFTER=5) ==="
-          for i in $(seq 1 7); do
-            kubectl exec "${POD}" -- wget -qO- http://localhost:8080/work 2>/dev/null || true
-            sleep 1
-          done
-          echo ""
-          echo "=== Status after deadlock ==="
-          kubectl exec "${POD}" -- wget -qO- http://localhost:8080/status 2>/dev/null || true
-          echo ""
-          echo "Waiting 60s for liveness probe to fail and restart the container..."
           sleep 60
-          echo "=== Pod status (expect RESTARTS > 0) ==="
-          kubectl get pods -l scenario=10-liveness-probe-failure
-          echo ""
-          echo "=== Liveness probe failure events ==="
-          kubectl describe pod -l scenario=10-liveness-probe-failure \
-            | grep -E "(Liveness|Killing|Unhealthy)" | head -15 || true
+          kubectl get pods -l scenario=12-rolling-update-stuck

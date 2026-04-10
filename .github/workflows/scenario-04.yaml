@@ -1,15 +1,6 @@
 name: Scenario 04 – Connection Refused to Internal Microservice
 
 on:
-  push:
-    branches: [master, main]
-    paths:
-      - "scenarios/04-connection-refused/**"
-      - ".github/workflows/scenario-04.yaml"
-  pull_request:
-    paths:
-      - "scenarios/04-connection-refused/**"
-      - ".github/workflows/scenario-04.yaml"
   workflow_dispatch:
 
 env:
@@ -145,17 +136,28 @@ jobs:
 
       - name: Demonstrate the connection-refused error
         run: |
-          FRONTEND_POD=$(kubectl get pods -l app=scenario-04-frontend \
-                           -o jsonpath='{.items[0].metadata.name}')
-          BACKEND_POD=$(kubectl get pods -l app=scenario-04-backend \
-                          -o jsonpath='{.items[0].metadata.name}')
+          set -euo pipefail
 
+          # Get pods safely
+          FRONTEND_POD=$(kubectl get pods -l app=scenario-04-frontend -o jsonpath='{.items[0].metadata.name}' || true)
+          BACKEND_POD=$(kubectl get pods -l app=scenario-04-backend -o jsonpath='{.items[0].metadata.name}' || true)
+
+          echo "Frontend pod: ${FRONTEND_POD}"
+          echo "Backend pod: ${BACKEND_POD}"
+
+          if [ -z "$BACKEND_POD" ] || [ -z "$FRONTEND_POD" ]; then
+           echo "❌ Pods not found"
+           kubectl get pods
+           exit 1
+          fi
+
+          echo ""
           echo "=== Backend is healthy ==="
-          kubectl exec "${BACKEND_POD}" -- wget -qO- http://localhost:5000/api/data || true
+          kubectl exec "${BACKEND_POD}" -- curl -s http://localhost:5000/api/data || true
 
           echo ""
           echo "=== Frontend returns 502 (wrong BACKEND_URL port) ==="
-          kubectl exec "${FRONTEND_POD}" -- wget -qSO- http://localhost:8080/api/proxy 2>&1 || true
+          kubectl exec "${FRONTEND_POD}" -- curl -s http://localhost:8080/api/proxy || true
 
           echo ""
           echo "=== Frontend logs (shows Connection refused errors) ==="

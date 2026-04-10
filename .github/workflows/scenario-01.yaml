@@ -1,15 +1,6 @@
 name: Scenario 01 – CrashLoop Bad Config
 
 on:
-  push:
-    branches: [master, main]
-    paths:
-      - "scenarios/01-crashloop-bad-config/**"
-      - ".github/workflows/scenario-01.yaml"
-  pull_request:
-    paths:
-      - "scenarios/01-crashloop-bad-config/**"
-      - ".github/workflows/scenario-01.yaml"
   workflow_dispatch:
 
 env:

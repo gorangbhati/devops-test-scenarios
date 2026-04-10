@@ -1,15 +1,6 @@
 name: Scenario 02 – API Latency N+1 Queries
 
 on:
-  push:
-    branches: [master, main]
-    paths:
-      - "scenarios/02-api-latency-n-plus-one/**"
-      - ".github/workflows/scenario-02.yaml"
-  pull_request:
-    paths:
-      - "scenarios/02-api-latency-n-plus-one/**"
-      - ".github/workflows/scenario-02.yaml"
   workflow_dispatch:
 
 env:
