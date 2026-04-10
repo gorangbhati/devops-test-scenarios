@@ -1,15 +1,6 @@
 name: Scenario 14 – Secret Not Mounted
 
 on:
-  push:
-    branches: [master, main]
-    paths:
-      - "scenarios/14-secret-not-mounted/**"
-      - ".github/workflows/scenario-14.yaml"
-  pull_request:
-    paths:
-      - "scenarios/14-secret-not-mounted/**"
-      - ".github/workflows/scenario-14.yaml"
   workflow_dispatch:
 
 env:
