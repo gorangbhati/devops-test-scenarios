@@ -1,15 +1,6 @@
 name: Scenario 03 – OOMKilled Memory Leak
 
 on:
-  push:
-    branches: [master, main]
-    paths:
-      - "scenarios/03-oomkilled-memory-leak/**"
-      - ".github/workflows/scenario-03.yaml"
-  pull_request:
-    paths:
-      - "scenarios/03-oomkilled-memory-leak/**"
-      - ".github/workflows/scenario-03.yaml"
   workflow_dispatch:
 
 env:
