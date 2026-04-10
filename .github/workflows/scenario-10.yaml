@@ -1,15 +1,6 @@
 name: Scenario 10 – Liveness Probe Failure (Deadlock)
 
 on:
-  push:
-    branches: [master, main]
-    paths:
-      - "scenarios/10-liveness-probe-failure/**"
-      - ".github/workflows/scenario-10.yaml"
-  pull_request:
-    paths:
-      - "scenarios/10-liveness-probe-failure/**"
-      - ".github/workflows/scenario-10.yaml"
   workflow_dispatch:
 
 env:
