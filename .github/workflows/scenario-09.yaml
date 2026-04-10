@@ -1,15 +1,6 @@
 name: Scenario 09 – ImagePullBackOff
 
 on:
-  push:
-    branches: [master, main]
-    paths:
-      - "scenarios/09-imagepullbackoff/**"
-      - ".github/workflows/scenario-09.yaml"
-  pull_request:
-    paths:
-      - "scenarios/09-imagepullbackoff/**"
-      - ".github/workflows/scenario-09.yaml"
   workflow_dispatch:
 
 env:
