@@ -293,43 +293,37 @@ Because the panic occurs in a goroutine started from `main()` — not an HTTP ha
 
 ## GCP Deployment Configuration
 
-### Required GitHub Secrets
+### Required Repository Variables and Secrets
+
+**Repository Variables** (Settings → Secrets and variables → Actions → Variables):
+
+| Variable Name | Description |
+|---------------|-------------|
+| `PROJECT_ID` | GCP project ID where the GKE cluster lives |
+| `CLUSTER_NAME` | Name of the GKE cluster |
+
+**Secrets** (Repository or Organization level):
 
 | Secret Name | Description |
 |-------------|-------------|
-| `GCP_PROJECT_ID` | GCP project ID where the GKE cluster lives |
-| `GCP_SA_KEY` | Base64-encoded JSON key of a GCP Service Account with roles: `roles/container.developer`, `roles/artifactregistry.writer` |
-| `GKE_CLUSTER_NAME` | Name of the GKE cluster |
-| `GKE_CLUSTER_ZONE` | Zone or region of the GKE cluster (e.g., `us-central1-a`) |
-| `GAR_LOCATION` | Artifact Registry location (e.g., `us-central1`) |
-| `GAR_REPOSITORY` | Artifact Registry repository name (e.g., `devops-test-scenarios`) |
+| `GCP_SA_KEY` | Base64-encoded JSON key of a GCP Service Account with role: `roles/container.developer` |
+| `GHCR_PAT` | GitHub Personal Access Token with `write:packages` scope |
 
 ### GCP Service Account Roles Required
 
 ```
 roles/container.developer      # Deploy to GKE
-roles/artifactregistry.writer  # Push images to Artifact Registry
-roles/iam.serviceAccountUser   # Impersonate service account if needed
+roles/container.clusterViewer  # List clusters to resolve location automatically
 ```
 
-### Artifact Registry Setup
+### Container Registry
 
-```bash
-# Create Artifact Registry repository
-gcloud artifacts repositories create devops-test-scenarios \
-  --repository-format=docker \
-  --location=us-central1 \
-  --description="Docker images for k8s test scenarios"
-
-# Configure Docker auth
-gcloud auth configure-docker us-central1-docker.pkg.dev
-```
+Images are pushed to **GitHub Container Registry** (`ghcr.io/{owner}/{image-name}`). No Artifact Registry setup is required.
 
 ### GKE Cluster Access
 
 ```bash
-# Get cluster credentials
+# Get cluster credentials (the workflows resolve location automatically)
 gcloud container clusters get-credentials <CLUSTER_NAME> \
-  --zone <CLUSTER_ZONE> \
   --project <PROJECT_ID>
 ```
