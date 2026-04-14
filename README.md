@@ -31,13 +31,20 @@ See [SCENARIOS.md](SCENARIOS.md) for the full list of scenarios and GCP deployme
 
 ## GCP Deployment Prerequisites
 
-Configure the following GitHub repository secrets before running any workflow:
+Configure the following GitHub repository variables and secrets before running any workflow:
+
+**Repository Variables** (Settings → Secrets and variables → Actions → Variables):
+
+| Variable | Description |
+|----------|-------------|
+| `PROJECT_ID` | GCP project ID |
+| `CLUSTER_NAME` | GKE cluster name |
+
+**Repository / Organization Secrets** (Settings → Secrets and variables → Actions → Secrets):
 
 | Secret | Description |
 |--------|-------------|
-| `GCP_PROJECT_ID` | GCP project ID |
 | `GCP_SA_KEY` | Base64-encoded GCP service account JSON key |
-| `GKE_CLUSTER_NAME` | GKE cluster name |
-| `GKE_CLUSTER_ZONE` | GKE cluster zone (e.g. `us-central1-a`) |
-| `GAR_LOCATION` | Artifact Registry location (e.g. `us-central1`) |
-| `GAR_REPOSITORY` | Artifact Registry repository name |
+| `GHCR_PAT` | GitHub Personal Access Token with `write:packages` scope (for pushing images to GHCR) |
+
+Images are built and pushed to GitHub Container Registry (`ghcr.io`). The GKE cluster location is resolved automatically at deploy time via `gcloud container clusters list`.
