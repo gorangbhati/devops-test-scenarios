@@ -73,6 +73,8 @@ jobs:
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
+          echo "Building image: ${TAG}"
+
           docker build -t "${TAG}" -t "${LATEST}" \
             scenarios/01-crashloop-bad-config/app/
 
@@ -114,8 +116,14 @@ jobs:
         run: |
           REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
 
+          echo "Using registry: $REGISTRY"
+
           sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
             scenarios/01-crashloop-bad-config/k8s/deployment.yaml
+
+      - name: Show deployment YAML
+        run: |
+          cat scenarios/01-crashloop-bad-config/k8s/deployment.yaml
 
       - name: Apply ConfigMap
         run: |
