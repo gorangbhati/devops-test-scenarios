@@ -35,9 +35,9 @@ jobs:
         run: pytest ../tests/ -v
 
 
-  # ──────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────
   # Job 2: Build Docker image and push to Artifact Registry
-  # ──────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────
   build-and-push:
     name: Build & Push Image
     runs-on: ubuntu-latest
@@ -46,9 +46,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-
-    outputs:
-      image: ${{ steps.meta.outputs.image }}
 
     steps:
       - uses: actions/checkout@v4
@@ -66,17 +63,15 @@ jobs:
           gcloud auth configure-docker ${{ secrets.GAR_LOCATION }}-docker.pkg.dev --quiet
 
       - name: Build and push Docker image
-        id: meta
         env:
           GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
         run: |
           IMAGE="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/${IMAGE_NAME}"
+
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
-
-          echo "Building image: ${TAG}"
 
           docker build -t "${TAG}" -t "${LATEST}" \
             scenarios/01-crashloop-bad-config/app/
@@ -84,12 +79,10 @@ jobs:
           docker push "${TAG}"
           docker push "${LATEST}"
 
-          echo "image=${TAG}" >> "$GITHUB_OUTPUT"
 
-
-  # ──────────────────────────────────────────
+  # ─────────────────────────────────────────────
   # Job 3: Deploy to GKE
-  # ──────────────────────────────────────────
+  # ─────────────────────────────────────────────
   deploy:
     name: Deploy to GKE
     runs-on: ubuntu-latest
@@ -113,18 +106,16 @@ jobs:
           location: ${{ secrets.GKE_CLUSTER_ZONE }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Substitute image in deployment manifest
+      - name: Substitute registry in deployment manifest
+        env:
+          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
         run: |
-          IMAGE="${{ needs.build-and-push.outputs.image }}"
+          REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
 
-          echo "Using image: ${IMAGE}"
-
-          sed -i "s|IMAGE_PLACEHOLDER|${IMAGE}|g" \
+          sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
             scenarios/01-crashloop-bad-config/k8s/deployment.yaml
-
-      - name: Show deployment manifest
-        run: |
-          cat scenarios/01-crashloop-bad-config/k8s/deployment.yaml
 
       - name: Apply ConfigMap
         run: |
@@ -136,19 +127,5 @@ jobs:
 
       - name: Wait and show pod status
         run: |
-          echo "Waiting for CrashLoopBackOff..."
           sleep 40
-
-          echo "=== Pod Status ==="
           kubectl get pods -l scenario=01-crashloop-bad-config
-
-          POD=$(kubectl get pods -l scenario=01-crashloop-bad-config \
-                -o jsonpath='{.items[0].metadata.name}')
-
-          echo ""
-          echo "=== Pod Logs ==="
-          kubectl logs "${POD}" --previous || kubectl logs "${POD}" || true
-
-          echo ""
-          echo "=== Pod Events ==="
-          kubectl describe pod "${POD}" | grep -A 20 "Events:"
