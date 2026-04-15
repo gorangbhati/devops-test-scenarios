@@ -8,14 +8,14 @@ env:
   IMAGE_NAME: "scenario-01-crashloop-bad-config"
 
 jobs:
+
   # ─────────────────────────────────────────────
   # Job 1: Lint / unit-test the application code
   # ─────────────────────────────────────────────
   test:
     name: Lint & Test
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+
     defaults:
       run:
         working-directory: scenarios/01-crashloop-bad-config/app
@@ -33,7 +33,7 @@ jobs:
 
       - name: Run unit tests
         run: pytest ../tests/ -v
-        # Tests live in scenarios/01-crashloop-bad-config/tests/
+
 
   # ──────────────────────────────────────────────────────
   # Job 2: Build Docker image and push to Artifact Registry
@@ -45,7 +45,7 @@ jobs:
 
     permissions:
       contents: read
-      id-token: write   # needed for Workload Identity Federation (optional)
+      id-token: write
 
     outputs:
       image: ${{ steps.meta.outputs.image }}
@@ -76,6 +76,8 @@ jobs:
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
+          echo "Building image: ${TAG}"
+
           docker build -t "${TAG}" -t "${LATEST}" \
             scenarios/01-crashloop-bad-config/app/
 
@@ -84,6 +86,7 @@ jobs:
 
           echo "image=${TAG}" >> "$GITHUB_OUTPUT"
 
+
   # ──────────────────────────────────────────
   # Job 3: Deploy to GKE
   # ──────────────────────────────────────────
@@ -91,9 +94,6 @@ jobs:
     name: Deploy to GKE
     runs-on: ubuntu-latest
     needs: build-and-push
-
-    permissions:
-      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -114,17 +114,19 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Substitute image in deployment manifest
-        env:
-          IMAGE: ${{ needs.build-and-push.outputs.image }}
-          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
-          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
         run: |
-          REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
+          IMAGE="${{ needs.build-and-push.outputs.image }}"
+
+          echo "Using image: ${IMAGE}"
+
           sed -i "s|IMAGE_PLACEHOLDER|${IMAGE}|g" \
             scenarios/01-crashloop-bad-config/k8s/deployment.yaml
 
-      - name: Apply ConfigMap (bad config — triggers CrashLoop)
+      - name: Show deployment manifest
+        run: |
+          cat scenarios/01-crashloop-bad-config/k8s/deployment.yaml
+
+      - name: Apply ConfigMap
         run: |
           kubectl apply -f scenarios/01-crashloop-bad-config/k8s/configmap.yaml
 
@@ -134,15 +136,19 @@ jobs:
 
       - name: Wait and show pod status
         run: |
-          echo "Waiting 60 seconds for pods to start crashing…"
-          sleep 60
+          echo "Waiting for CrashLoopBackOff..."
+          sleep 40
+
           echo "=== Pod Status ==="
           kubectl get pods -l scenario=01-crashloop-bad-config
-          echo ""
-          echo "=== Pod Logs (last crash) ==="
+
           POD=$(kubectl get pods -l scenario=01-crashloop-bad-config \
-                  -o jsonpath='{.items[0].metadata.name}')
+                -o jsonpath='{.items[0].metadata.name}')
+
+          echo ""
+          echo "=== Pod Logs ==="
           kubectl logs "${POD}" --previous || kubectl logs "${POD}" || true
+
           echo ""
           echo "=== Pod Events ==="
           kubectl describe pod "${POD}" | grep -A 20 "Events:"
