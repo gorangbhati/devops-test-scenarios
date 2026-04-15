@@ -37,7 +37,7 @@ jobs:
     name: Build & Push Images
     runs-on: ubuntu-latest
     needs: test
-    if: github.event_name != 'pull_request'
+    
 
     permissions:
       contents: read
@@ -65,9 +65,9 @@ jobs:
           GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
         run: |
           IMAGE="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/scenario-04-backend"
-          docker build -t "${IMAGE}:${{ github.sha }}" -t "${IMAGE}:latest" \
+          docker build -t "${IMAGE}:${{ github.run_number }}" -t "${IMAGE}:latest" \
             scenarios/04-connection-refused/backend/app/
-          docker push "${IMAGE}:${{ github.sha }}"
+          docker push "${IMAGE}:${{ github.run_number }}"
           docker push "${IMAGE}:latest"
 
       - name: Build and push frontend image
@@ -77,9 +77,9 @@ jobs:
           GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
         run: |
           IMAGE="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/scenario-04-frontend"
-          docker build -t "${IMAGE}:${{ github.sha }}" -t "${IMAGE}:latest" \
+          docker build -t "${IMAGE}:${{ github.run_number }}" -t "${IMAGE}:latest" \
             scenarios/04-connection-refused/frontend/app/
-          docker push "${IMAGE}:${{ github.sha }}"
+          docker push "${IMAGE}:${{ github.run_number }}"
           docker push "${IMAGE}:latest"
 
   # ──────────────────────────────────────────
@@ -89,7 +89,7 @@ jobs:
     name: Deploy to GKE
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.event_name != 'pull_request'
+    
 
     permissions:
       contents: read
