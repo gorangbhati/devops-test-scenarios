@@ -102,20 +102,12 @@ jobs:
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Get GKE cluster location
-        id: cluster
-        run: |
-          LOCATION=$(gcloud container clusters list \
-            --project="${{ vars.PROJECT_ID }}" \
-            --filter="name=${{ vars.CLUSTER_NAME }}" \
-            --format="value(location)")
-          echo "location=${LOCATION}" >> "$GITHUB_OUTPUT"
 
       - name: Get GKE credentials
         uses: google-github-actions/get-gke-credentials@v2
         with:
           cluster_name: ${{ vars.CLUSTER_NAME }}
-          location: ${{ steps.cluster.outputs.location }}
+          location: us-central1-a
           project_id: ${{ vars.PROJECT_ID }}
 
       - name: Deploy backend
