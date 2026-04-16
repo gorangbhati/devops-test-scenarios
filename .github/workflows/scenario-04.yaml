@@ -37,7 +37,7 @@ jobs:
     name: Build & Push Images
     runs-on: ubuntu-latest
     needs: test
-    if: github.event_name != 'pull_request'
+    
 
     permissions:
       contents: read
@@ -56,18 +56,26 @@ jobs:
       - name: Build and push backend image
         run: |
           IMAGE="ghcr.io/${{ github.repository_owner }}/scenario-04-backend"
-          docker build -t "${IMAGE}:${{ github.sha }}" -t "${IMAGE}:latest" \
-            scenarios/04-connection-refused/backend/app/
-          docker push "${IMAGE}:${{ github.sha }}"
-          docker push "${IMAGE}:latest"
+          TAG="${IMAGE}:${{ github.run_number }}"
+          LATEST="${IMAGE}:latest"
+
+          docker build -t "${TAG}" -t "${LATEST}" \
+          scenarios/04-connection-refused/backend/app/
+
+          docker push "${TAG}"
+          docker push "${LATEST}"
 
       - name: Build and push frontend image
         run: |
           IMAGE="ghcr.io/${{ github.repository_owner }}/scenario-04-frontend"
-          docker build -t "${IMAGE}:${{ github.sha }}" -t "${IMAGE}:latest" \
+          TAG="${IMAGE}:${{ github.run_number }}"
+          LATEST="${IMAGE}:latest"
+
+          docker build -t "${TAG}" -t "${LATEST}" \
             scenarios/04-connection-refused/frontend/app/
-          docker push "${IMAGE}:${{ github.sha }}"
-          docker push "${IMAGE}:latest"
+
+          docker push "${TAG}"
+          docker push "${LATEST}"
 
   # ──────────────────────────────────────────
   # Job 3: Deploy to GKE
@@ -76,7 +84,7 @@ jobs:
     name: Deploy to GKE
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.event_name != 'pull_request'
+    
 
     permissions:
       contents: read

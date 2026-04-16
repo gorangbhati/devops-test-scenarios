@@ -32,7 +32,7 @@ jobs:
     name: Build & Push Image
     runs-on: ubuntu-latest
     needs: test
-    if: github.event_name != 'pull_request'
+    
 
     permissions:
       contents: read
@@ -54,8 +54,8 @@ jobs:
       - name: Build and push Docker image
         id: meta
         run: |
-          IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}"
-          TAG="${IMAGE}:${{ github.sha }}"
+          IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}" 
+          TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
           docker build -t "${TAG}" -t "${LATEST}" scenarios/08-pods-pending-scheduler/app/
           docker push "${TAG}"
@@ -66,7 +66,7 @@ jobs:
     name: Deploy to GKE
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.event_name != 'pull_request'
+    
 
     permissions:
       contents: read
