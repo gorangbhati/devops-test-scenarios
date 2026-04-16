@@ -45,7 +45,7 @@ jobs:
 
     permissions:
       contents: read
-      id-token: write
+      packages: write
 
     outputs:
       image: ${{ steps.meta.outputs.image }}
@@ -53,26 +53,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker
-        run: |
-          gcloud auth configure-docker ${{ secrets.GAR_LOCATION }}-docker.pkg.dev --quiet
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
 
       - name: Build and push image
         id: meta
-        env:
-          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
-          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
         run: |
-          IMAGE="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/scenario-16-background-goroutine-panic"
+          IMAGE="ghcr.io/${{ github.repository_owner }}/scenario-16-background-goroutine-panic"
 
           docker build -t ${IMAGE}:latest \
             scenarios/16-background-goroutine-panic/app/
@@ -101,20 +92,25 @@ jobs:
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Get GKE cluster location
+        id: cluster
+        run: |
+          LOCATION=$(gcloud container clusters list \
+            --project="${{ vars.PROJECT_ID }}" \
+            --filter="name=${{ vars.CLUSTER_NAME }}" \
+            --format="value(location)")
+          echo "location=${LOCATION}" >> "$GITHUB_OUTPUT"
+
       - name: Get GKE credentials
         uses: google-github-actions/get-gke-credentials@v2
         with:
-          cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
-          location: ${{ secrets.GKE_CLUSTER_ZONE }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          cluster_name: ${{ vars.CLUSTER_NAME }}
+          location: ${{ steps.cluster.outputs.location }}
+          project_id: ${{ vars.PROJECT_ID }}
 
       - name: Substitute images in deployment manifest
-        env:
-          GAR_LOCATION: ${{ secrets.GAR_LOCATION }}
-          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-          GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
         run: |
-          REGISTRY="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
+          REGISTRY="ghcr.io/${{ github.repository_owner }}"
           sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
             scenarios/16-background-goroutine-panic/k8s/deployment.yaml
 
