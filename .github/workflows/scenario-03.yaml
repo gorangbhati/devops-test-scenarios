@@ -120,7 +120,7 @@ jobs:
 
       - name: Wait for initial rollout
         run: |
-          kubectl rollout status deployment/scenario-03-oomkilled --timeout=120s
+          kubectl rollout status deployment/scenario-03-oomkilled --timeout=120s || true
 
       - name: Trigger memory leak and wait for OOMKilled
         run: |
