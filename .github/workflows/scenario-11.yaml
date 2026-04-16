@@ -6,6 +6,7 @@ on:
 env:
   SCENARIO: "11-resource-quota-exceeded"
   IMAGE_NAME: "scenario-11-resource-quota-exceeded"
+  NAMESPACE: "test-scenerios"
 
 jobs:
 
@@ -15,6 +16,9 @@ jobs:
   test:
     name: Lint & Test
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
 
     defaults:
       run:
@@ -29,21 +33,19 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: |
-          pip install pytest
+        run: pip install pytest
 
-      - name: Run tests
-        run: |
-          pytest ../tests/ -v || echo "No tests found"
+      - name: Run unit tests
+        run: pytest ../tests/ -v
+
 
 # ─────────────────────────────────────────────
-# Job 2: Build Docker image and push to registry
+# Job 2: Build Docker image and push to GHCR
 # ─────────────────────────────────────────────
   build-and-push:
     name: Build & Push Image
     runs-on: ubuntu-latest
     needs: test
-    
 
     permissions:
       contents: read
@@ -55,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Log in to GitHub Container Registry
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -65,9 +67,13 @@ jobs:
       - name: Build and push Docker image
         id: meta
         run: |
-          IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}" 
+          set -euo pipefail
+
+          IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}"
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
+
+          echo "Building image ${TAG}"
 
           docker build -t "${TAG}" -t "${LATEST}" \
             scenarios/11-resource-quota-exceeded/app/
@@ -77,6 +83,7 @@ jobs:
 
           echo "image=${TAG}" >> "$GITHUB_OUTPUT"
 
+
 # ─────────────────────────────────────────────
 # Job 3: Deploy to GKE
 # ─────────────────────────────────────────────
@@ -84,7 +91,6 @@ jobs:
     name: Deploy to GKE
     runs-on: ubuntu-latest
     needs: build-and-push
-    
 
     permissions:
       contents: read
@@ -92,14 +98,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+
+# Authenticate to Google Cloud
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+
+# Install gcloud CLI
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+
+# Get cluster credentials
       - name: Get GKE credentials
         uses: google-github-actions/get-gke-credentials@v2
         with:
@@ -107,22 +119,41 @@ jobs:
           location: us-central1-a
           project_id: ${{ vars.PROJECT_ID }}
 
-      - name: Substitute image in deployment
-        env:
-          IMAGE: ${{ needs.build-and-push.outputs.image }}
-        run: |
-          REGISTRY="ghcr.io/${{ github.repository_owner }}"
-          sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
-            scenarios/11-resource-quota-exceeded/k8s/deployment.yaml
 
-      - name: Apply ResourceQuota
+# Ensure namespace exists
+      - name: Ensure namespace exists
         run: |
+          set -euo pipefail
+          if ! kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1; then
+            echo "Creating namespace ${NAMESPACE}"
+            kubectl create namespace "${NAMESPACE}"
+          else
+            echo "Namespace ${NAMESPACE} already exists"
+          fi
+
+
+# Apply ResourceQuota
+      - name: Apply resource quota
+        run: |
+          set -euo pipefail
           kubectl apply -f scenarios/11-resource-quota-exceeded/k8s/quota.yaml
 
-      - name: Deploy application
-        run: |
-          kubectl apply -f scenarios/11-resource-quota-exceeded/k8s/deployment.yaml
 
+# Apply scenario manifests
+      - name: Apply Kubernetes manifests
+        run: |
+          set -euo pipefail
+          kubectl apply -f scenarios/11-resource-quota-exceeded/k8s/
+
+
+# Show quota status
+      - name: Show resource quota
+        run: |
+          kubectl get resourcequota -n "${NAMESPACE}"
+          kubectl describe resourcequota -n "${NAMESPACE}"
+
+
+# Show pods
       - name: Show pod status
         run: |
-          kubectl get pods -l scenario=11-resource-quota-exceeded
+          kubectl get pods -n "${NAMESPACE}" -o wide || true
