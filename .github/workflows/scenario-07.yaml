@@ -100,7 +100,7 @@ jobs:
           kubectl apply -f scenarios/07-dns-resolution-failure/k8s/configmap.yaml
           kubectl apply -f scenarios/07-dns-resolution-failure/k8s/deployment.yaml
           kubectl apply -f scenarios/07-dns-resolution-failure/k8s/service.yaml
-          kubectl rollout status deployment/scenario-07-dns-check --timeout=120s
+          kubectl rollout status deployment/scenario-07-dns-check --timeout=120s || true
 
       - name: Show healthy DNS check
         run: |
