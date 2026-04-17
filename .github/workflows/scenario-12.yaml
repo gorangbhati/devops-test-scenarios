@@ -6,6 +6,7 @@ on:
 env:
   SCENARIO: "12-rolling-update-stuck"
   IMAGE_NAME: "scenario-12-rolling-update-stuck"
+  NAMESPACE: "test-scenerios"
 
 jobs:
 
@@ -114,9 +115,13 @@ jobs:
           sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
             scenarios/12-rolling-update-stuck/k8s/deployment.yaml
 
+      - name: Ensure namespace exists
+        run: |
+          kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Deploy application
         run: |
-          kubectl apply -f scenarios/12-rolling-update-stuck/k8s/deployment.yaml
+          kubectl apply -n ${NAMESPACE} -f scenarios/12-rolling-update-stuck/k8s/deployment.yaml
 
       - name: Wait and show pod status
         run: |
