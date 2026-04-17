@@ -123,27 +123,21 @@ jobs:
 # Ensure namespace exists
       - name: Ensure namespace exists
         run: |
-          set -euo pipefail
-          if ! kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1; then
-            echo "Creating namespace ${NAMESPACE}"
-            kubectl create namespace "${NAMESPACE}"
-          else
-            echo "Namespace ${NAMESPACE} already exists"
-          fi
+          kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
 
 
 # Apply ResourceQuota
       - name: Apply resource quota
         run: |
           set -euo pipefail
-          kubectl apply -f scenarios/11-resource-quota-exceeded/k8s/quota.yaml
+          kubectl apply -n "${NAMESPACE}" -f scenarios/11-resource-quota-exceeded/k8s/quota.yaml
 
 
 # Apply scenario manifests
       - name: Apply Kubernetes manifests
         run: |
           set -euo pipefail
-          kubectl apply -f scenarios/11-resource-quota-exceeded/k8s/
+          kubectl apply -n "${NAMESPACE}" -f scenarios/11-resource-quota-exceeded/k8s/
 
 
 # Show quota status

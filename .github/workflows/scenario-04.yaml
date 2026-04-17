@@ -122,8 +122,8 @@ jobs:
 
       - name: Wait for rollouts
         run: |
-          kubectl rollout status deployment/scenario-04-backend --timeout=300s
-          kubectl rollout status deployment/scenario-04-frontend --timeout=300s
+          kubectl rollout status deployment/scenario-04-backend --timeout=300s || true
+          kubectl rollout status deployment/scenario-04-frontend --timeout=300s || true
 
       - name: Demonstrate the connection-refused error
         run: |

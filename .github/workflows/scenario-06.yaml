@@ -10,12 +10,10 @@ env:
 
 jobs:
 
-  # ─────────────────────────────────────────────
-  # Job 1: Lint / unit-test the application code
-  # ─────────────────────────────────────────────
   test:
     name: Lint & Test
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
 
@@ -26,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -38,9 +36,6 @@ jobs:
         run: npm test
 
 
-  # ─────────────────────────────────────────────
-  # Job 2: Build Docker image and push to GHCR
-  # ─────────────────────────────────────────────
   build-and-push:
     name: Build & Push Image
     runs-on: ubuntu-latest
@@ -66,26 +61,17 @@ jobs:
       - name: Build and push Docker image
         id: meta
         run: |
-          set -euo pipefail
-
           IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}"
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
-          echo "Building image ${TAG}"
-
-          docker build -t "${TAG}" -t "${LATEST}" \
-            scenarios/06-tls-ingress-failure/app/
-
+          docker build -t "${TAG}" -t "${LATEST}" scenarios/06-tls-ingress-failure/app/
           docker push "${TAG}"
           docker push "${LATEST}"
 
           echo "image=${TAG}" >> "$GITHUB_OUTPUT"
 
 
-  # ─────────────────────────────────────────────
-  # Job 3: Deploy to GKE
-  # ─────────────────────────────────────────────
   deploy:
     name: Deploy to GKE
     runs-on: ubuntu-latest
@@ -102,7 +88,7 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Setup gcloud SDK
+      - name: Setup Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Get GKE credentials
@@ -112,34 +98,19 @@ jobs:
           location: us-central1-a
           project_id: ${{ vars.PROJECT_ID }}
 
-      # Ensure namespace exists
       - name: Ensure namespace exists
         run: |
-          set -euo pipefail
-          if ! kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1; then
-            echo "Creating namespace ${NAMESPACE}"
-            kubectl create namespace "${NAMESPACE}"
-          else
-            echo "Namespace ${NAMESPACE} already exists"
-          fi
+          kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
 
-      # Replace registry placeholder
-      - name: Substitute registry in manifests
+      - name: Substitute registry in deployment manifest
         run: |
-          set -euo pipefail
           REGISTRY="ghcr.io/${{ github.repository_owner }}"
+          sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" scenarios/06-tls-ingress-failure/k8s/deployment.yaml
 
-          sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
-            scenarios/06-tls-ingress-failure/k8s/deployment.yaml
-
-      # Apply manifests
       - name: Apply Kubernetes manifests
         run: |
-          set -euo pipefail
-          kubectl apply -f scenarios/06-tls-ingress-failure/k8s/
+          kubectl apply -n ${NAMESPACE} -f scenarios/06-tls-ingress-failure/k8s/
 
-      # Verify resources
       - name: Verify deployment
         run: |
-          set -euo pipefail
-          kubectl get all -n "${NAMESPACE}"
+          kubectl get all -n ${NAMESPACE}

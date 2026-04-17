@@ -6,12 +6,13 @@ on:
 env:
   SCENARIO: "14-secret-not-mounted"
   IMAGE_NAME: "scenario-14-secret-not-mounted"
+  NAMESPACE: "test-scenerios"
 
 jobs:
 
-# ─────────────────────────────────────────────
-# Job 1: Lint / unit-test the Python app
-# ─────────────────────────────────────────────
+  # ─────────────────────────────────────────────
+  # Job 1: Lint / unit-test the application
+  # ─────────────────────────────────────────────
   test:
     name: Lint & Test
     runs-on: ubuntu-latest
@@ -29,21 +30,19 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: |
-          pip install pytest
+        run: pip install pytest
 
       - name: Run tests
-        run: |
-          pytest ../tests/ -v || echo "No tests found"
+        run: pytest ../tests/ -v || echo "No tests found"
 
-# ─────────────────────────────────────────────
-# Job 2: Build Docker image and push to Artifact Registry
-# ─────────────────────────────────────────────
+
+  # ─────────────────────────────────────────────
+  # Job 2: Build Docker image and push to GHCR
+  # ─────────────────────────────────────────────
   build-and-push:
     name: Build & Push Image
     runs-on: ubuntu-latest
     needs: test
-    
 
     permissions:
       contents: read
@@ -55,7 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Log in to GitHub Container Registry
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -65,26 +64,24 @@ jobs:
       - name: Build and push Docker image
         id: meta
         run: |
-          IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}" 
+          IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}"
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
-          docker build -t "${TAG}" -t "${LATEST}" \
-            scenarios/14-secret-not-mounted/app/
-
+          docker build -t "${TAG}" -t "${LATEST}" scenarios/14-secret-not-mounted/app/
           docker push "${TAG}"
           docker push "${LATEST}"
 
           echo "image=${TAG}" >> "$GITHUB_OUTPUT"
 
-# ─────────────────────────────────────────────
-# Job 3: Deploy to GKE
-# ─────────────────────────────────────────────
+
+  # ─────────────────────────────────────────────
+  # Job 3: Deploy to GKE
+  # ─────────────────────────────────────────────
   deploy:
     name: Deploy to GKE
     runs-on: ubuntu-latest
     needs: build-and-push
-    
 
     permissions:
       contents: read
@@ -107,22 +104,20 @@ jobs:
           location: us-central1-a
           project_id: ${{ vars.PROJECT_ID }}
 
-      - name: Substitute image in deployment manifest
-        env:
-          IMAGE: ${{ needs.build-and-push.outputs.image }}
+      - name: Ensure namespace exists
+        run: |
+          kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Substitute registry in deployment manifest
         run: |
           REGISTRY="ghcr.io/${{ github.repository_owner }}"
-          sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
-            scenarios/14-secret-not-mounted/k8s/secret.yaml
-
-      - name: Apply Secret
-        run: |
-          kubectl apply -f scenarios/14-secret-not-mounted/k8s/secret.yaml
+          sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" scenarios/14-secret-not-mounted/k8s/deployment.yaml
 
       - name: Deploy application
         run: |
-          kubectl apply -f scenarios/14-secret-not-mounted/k8s/deployment.yaml
+          kubectl apply -n ${NAMESPACE} -f scenarios/14-secret-not-mounted/k8s/secret.yaml
+          kubectl apply -n ${NAMESPACE} -f scenarios/14-secret-not-mounted/k8s/deployment.yaml
 
       - name: Show pod status
         run: |
-          kubectl get pods -l scenario=14-secret-not-mounted
+          kubectl get pods -n ${NAMESPACE}
