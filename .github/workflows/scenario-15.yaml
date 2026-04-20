@@ -5,36 +5,52 @@ on:
 
 env:
   SCENARIO: "15-network-policy-block"
-  IMAGE_NAME: "scenario-15-network-policy-block"
   NAMESPACE: "test-scenerios"
 
 jobs:
 
-  # ─────────────────────────────────────────────
-  # Job 1: Lint / unit-test the application
-  # ─────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# Job 1: Lint / unit-test the application
+# ─────────────────────────────────────────────
   test:
     name: Lint & Test
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: scenarios/15-network-policy-block/app
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Node
+  
+      # Setup Node (if needed)
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "18"
 
-      - name: Install dependencies
-        run: npm install
+      # Setup Python (if needed)
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Run tests
-        run: npm test || echo "No tests found"
+      - name: Run tests if present
+        run: |
+          echo "Checking for tests..."
 
+          # Node project
+          if [ -f "package.json" ]; then
+            echo "Node project detected"
+            npm install
+            npm test || echo "No npm tests found"
+
+          # Python project
+          elif [ -d "tests" ]; then
+            echo "Python tests detected"
+            pip install pytest
+            pytest tests/ -v
+
+          # No tests
+          else
+            echo "No tests found. Skipping test stage."
+          fi
 
   # ─────────────────────────────────────────────
   # Job 2: Build Docker image and push to GHCR
@@ -64,11 +80,16 @@ jobs:
       - name: Build and push Docker image
         id: meta
         run: |
+          set -euo pipefail
+
           IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}"
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
-          docker build -t "${TAG}" -t "${LATEST}" scenarios/15-network-policy-block/app/
+          echo "Building image ${TAG}"
+
+          docker build -t "${TAG}" -t "${LATEST}" scenarios/15-network-policy-block/
+
           docker push "${TAG}"
           docker push "${LATEST}"
 
