@@ -84,7 +84,7 @@ jobs:
 
           echo "Building image ${TAG}"
 
-          docker build -t "${TAG}" -t "${LATEST}" scenarios/11-resource-quota-exceeded/app/
+          docker build -t "${TAG}" -t "${LATEST}" scenarios/11-resource-quota-exceeded/
 
           docker push "${TAG}"
           docker push "${LATEST}"
