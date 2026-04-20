@@ -74,17 +74,15 @@ jobs:
       - name: Build and push Docker image
         id: meta
         run: |
-          set -euo pipefail
+          set -eo pipefail
 
-          IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}"
+          IMAGE="ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}"
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
           echo "Building image ${TAG}"
 
-          docker build -t "${TAG}" -t "${LATEST}" \
-            scenarios/11-resource-quota-exceeded/app/
-
+          docker build -t "${TAG}" -t "${LATEST}" scenarios/15-network-policy-block/
           docker push "${TAG}"
           docker push "${LATEST}"
 
