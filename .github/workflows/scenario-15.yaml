@@ -85,7 +85,10 @@ jobs:
 
           echo "Building backend image ${TAG}"
 
-          docker build -t "${TAG}" -t "${LATEST}" \
+          docker build \
+            -f scenarios/15-network-policy-block/backend/Dockerfile \
+            -t "${TAG}" \
+            -t "${LATEST}" \
             scenarios/15-network-policy-block/backend
 
           docker push "${TAG}"
@@ -95,14 +98,17 @@ jobs:
       - name: Build and push frontend image
         run: |
           set -euo pipefail
-  
+
           IMAGE="ghcr.io/${{ github.repository_owner }}/scenario-15-frontend"
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
           echo "Building frontend image ${TAG}"
 
-          docker build -t "${TAG}" -t "${LATEST}" \
+          docker build \
+            -f scenarios/15-network-policy-block/frontend/Dockerfile \
+            -t "${TAG}" \
+            -t "${LATEST}" \
             scenarios/15-network-policy-block/frontend
 
           docker push "${TAG}"
