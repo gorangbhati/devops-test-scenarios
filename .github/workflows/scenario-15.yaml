@@ -89,7 +89,7 @@ jobs:
           echo "Building backend image ${TAG}"
 
           docker build -t "${TAG}" -t "${LATEST}" \
-            scenarios/15-network-policy-block/backend
+           scenarios/15-network-policy-block/backend
 
           docker push "${TAG}"
           docker push "${LATEST}"
@@ -109,7 +109,6 @@ jobs:
 
           docker push "${TAG}"
           docker push "${LATEST}"
-
 
   # ─────────────────────────────────────────────
   # Job 3: Deploy to GKE
