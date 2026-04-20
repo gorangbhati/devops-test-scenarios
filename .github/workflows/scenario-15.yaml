@@ -153,7 +153,7 @@ jobs:
 
       - name: Apply network policy
         run: |
-          kubectl apply -n ${NAMESPACE} -f scenarios/15-network-policy-block/k8s/network-policy.yaml
+          kubectl apply -n ${NAMESPACE} -f scenarios/15-network-policy-block/k8s/networkpolicy.yaml
 
       - name: Show pod status
         run: |
