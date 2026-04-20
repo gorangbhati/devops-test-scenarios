@@ -10,31 +10,49 @@ env:
 
 jobs:
 
-  # ─────────────────────────────────────────────
-  # Job 1: Lint / unit-test the application
-  # ─────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# Job 1: Lint / unit-test the application
+# ─────────────────────────────────────────────
   test:
     name: Lint & Test
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: scenarios/15-network-policy-block/app
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Node
+  
+      # Setup Node (if needed)
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "18"
 
-      - name: Install dependencies
-        run: npm install
+      # Setup Python (if needed)
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Run tests
-        run: npm test || echo "No tests found"
+      - name: Run tests if present
+        run: |
+          echo "Checking for backend tests..."
 
+          if [ -f "scenarios/15-network-policy-block/backend/package.json" ]; then
+            cd scenarios/15-network-policy-block/backend
+            npm install
+            npm test || echo "No backend tests"
+            cd -
+          fi
+
+          echo "Checking for frontend tests..."
+
+          if [ -f "scenarios/15-network-policy-block/frontend/package.json" ]; then
+            cd scenarios/15-network-policy-block/frontend
+            npm install
+            npm test || echo "No frontend tests"
+            cd -
+          fi
+
+          echo "Tests completed or skipped."
 
   # ─────────────────────────────────────────────
   # Job 2: Build Docker image and push to GHCR
@@ -48,9 +66,6 @@ jobs:
       contents: read
       packages: write
 
-    outputs:
-      image: ${{ steps.meta.outputs.image }}
-
     steps:
       - uses: actions/checkout@v4
 
@@ -61,19 +76,34 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Build and push Docker image
-        id: meta
+      - name: Build backend image
         run: |
-          IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}"
+          set -euo pipefail
+
+          IMAGE="ghcr.io/${{ github.repository_owner }}/scenario-15-backend"
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
-          docker build -t "${TAG}" -t "${LATEST}" scenarios/15-network-policy-block/app/
+          docker build -t "${TAG}" -t "${LATEST}" \
+            scenarios/15-network-policy-block/backend
+
           docker push "${TAG}"
           docker push "${LATEST}"
 
-          echo "image=${TAG}" >> "$GITHUB_OUTPUT"
 
+      - name: Build frontend image
+        run: |
+          set -euo pipefail
+
+          IMAGE="ghcr.io/${{ github.repository_owner }}/scenario-15-frontend"
+          TAG="${IMAGE}:${{ github.run_number }}"
+          LATEST="${IMAGE}:latest"
+
+          docker build -t "${TAG}" -t "${LATEST}" \
+            scenarios/15-network-policy-block/frontend
+
+          docker push "${TAG}"
+          docker push "${LATEST}"
 
   # ─────────────────────────────────────────────
   # Job 3: Deploy to GKE

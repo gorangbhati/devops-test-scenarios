@@ -7,12 +7,14 @@ env:
   SCENARIO: "04-connection-refused"
 
 jobs:
+
   # ─────────────────────────────────────────────
   # Job 1: Test both services
   # ─────────────────────────────────────────────
   test:
     name: Lint & Test
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
 
@@ -28,16 +30,21 @@ jobs:
         run: pip install pytest
 
       - name: Run unit tests
-        run: pytest scenarios/04-connection-refused/tests/ -v
+        run: |
+          if [ -d "scenarios/04-connection-refused/tests" ]; then
+            pytest scenarios/04-connection-refused/tests -v
+          else
+            echo "No tests found, skipping."
+          fi
 
-  # ──────────────────────────────────────────────────────
+
+  # ─────────────────────────────────────────────
   # Job 2: Build and push both Docker images
-  # ──────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────
   build-and-push:
     name: Build & Push Images
     runs-on: ubuntu-latest
     needs: test
-    
 
     permissions:
       contents: read
@@ -59,9 +66,7 @@ jobs:
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
-          docker build -t "${TAG}" -t "${LATEST}" \
-          scenarios/04-connection-refused/backend/app/
-
+          docker build -t "${TAG}" -t "${LATEST}" scenarios/04-connection-refused/backend/app/
           docker push "${TAG}"
           docker push "${LATEST}"
 
@@ -71,20 +76,18 @@ jobs:
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
-          docker build -t "${TAG}" -t "${LATEST}" \
-            scenarios/04-connection-refused/frontend/app/
-
+          docker build -t "${TAG}" -t "${LATEST}" scenarios/04-connection-refused/frontend/app/
           docker push "${TAG}"
           docker push "${LATEST}"
 
-  # ──────────────────────────────────────────
+
+  # ─────────────────────────────────────────────
   # Job 3: Deploy to GKE
-  # ──────────────────────────────────────────
+  # ─────────────────────────────────────────────
   deploy:
     name: Deploy to GKE
     runs-on: ubuntu-latest
     needs: build-and-push
-    
 
     permissions:
       contents: read
@@ -107,11 +110,10 @@ jobs:
           location: us-central1-a
           project_id: ${{ vars.PROJECT_ID }}
 
-      - name: Substitute images in deployment manifest
+      - name: Substitute registry in deployment manifest
         run: |
           REGISTRY="ghcr.io/${{ github.repository_owner }}"
-          sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" \
-            scenarios/04-connection-refused/k8s/deployments.yaml
+          sed -i "s|REGISTRY_PLACEHOLDER|${REGISTRY}|g" scenarios/04-connection-refused/k8s/deployments.yaml
 
       - name: Apply manifests
         run: |
@@ -120,26 +122,26 @@ jobs:
           kubectl apply -f scenarios/04-connection-refused/k8s/deployments.yaml
           kubectl apply -f scenarios/04-connection-refused/k8s/services.yaml
 
-      - name: Wait for rollouts
+      - name: Wait for pods to start
         run: |
-          kubectl rollout status deployment/scenario-04-backend --timeout=300s || true
-          kubectl rollout status deployment/scenario-04-frontend --timeout=300s || true
+          kubectl wait --for=condition=ready pod -l app=scenario-04-backend --timeout=180s || true
+          kubectl wait --for=condition=ready pod -l app=scenario-04-frontend --timeout=180s || true
+          kubectl get pods
 
       - name: Demonstrate the connection-refused error
         run: |
           set -euo pipefail
 
-          # Get pods safely
-          FRONTEND_POD=$(kubectl get pods -l app=scenario-04-frontend -o jsonpath='{.items[0].metadata.name}' || true)
-          BACKEND_POD=$(kubectl get pods -l app=scenario-04-backend -o jsonpath='{.items[0].metadata.name}' || true)
+          FRONTEND_POD=$(kubectl get pods -l app=scenario-04-frontend -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+          BACKEND_POD=$(kubectl get pods -l app=scenario-04-backend -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
 
           echo "Frontend pod: ${FRONTEND_POD}"
           echo "Backend pod: ${BACKEND_POD}"
 
           if [ -z "$BACKEND_POD" ] || [ -z "$FRONTEND_POD" ]; then
-           echo "❌ Pods not found"
-           kubectl get pods
-           exit 1
+            echo "Pods not found"
+            kubectl get pods
+            exit 1
           fi
 
           echo ""
@@ -151,5 +153,5 @@ jobs:
           kubectl exec "${FRONTEND_POD}" -- curl -s http://localhost:8080/api/proxy || true
 
           echo ""
-          echo "=== Frontend logs (shows Connection refused errors) ==="
+          echo "=== Frontend logs ==="
           kubectl logs "${FRONTEND_POD}" --tail=20

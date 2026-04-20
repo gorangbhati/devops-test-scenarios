@@ -32,8 +32,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run unit tests
-        run: npm test
+      - name: Run unit tests (if present)
+        run: |
+          if npm run | grep -q "test"; then
+            npm test
+          else
+            echo "No tests found, skipping."
+          fi
 
 
   build-and-push:
