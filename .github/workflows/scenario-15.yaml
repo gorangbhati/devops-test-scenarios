@@ -86,13 +86,14 @@ jobs:
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
-          echo "Building backend image ${TAG}"
+          echo "Building backend image: ${TAG}"
 
           docker build -t "${TAG}" -t "${LATEST}" \
-           scenarios/15-network-policy-block/backend
+            scenarios/15-network-policy-block/backend
 
           docker push "${TAG}"
           docker push "${LATEST}"
+
 
       - name: Build and push frontend image
         run: |
@@ -102,7 +103,7 @@ jobs:
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
-          echo "Building frontend image ${TAG}"
+          echo "Building frontend image: ${TAG}"
 
           docker build -t "${TAG}" -t "${LATEST}" \
             scenarios/15-network-policy-block/frontend
