@@ -75,7 +75,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Build and push backend image
+      - name: Build backend image
         run: |
           set -euo pipefail
 
@@ -83,19 +83,14 @@ jobs:
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
-          echo "Building backend image ${TAG}"
-
-          docker build \
-            -f scenarios/15-network-policy-block/backend/Dockerfile \
-            -t "${TAG}" \
-            -t "${LATEST}" \
+          docker build -t "${TAG}" -t "${LATEST}" \
             scenarios/15-network-policy-block/backend
 
           docker push "${TAG}"
           docker push "${LATEST}"
 
 
-      - name: Build and push frontend image
+      - name: Build frontend image
         run: |
           set -euo pipefail
 
@@ -103,12 +98,7 @@ jobs:
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
-          echo "Building frontend image ${TAG}"
-
-          docker build \
-            -f scenarios/15-network-policy-block/frontend/Dockerfile \
-            -t "${TAG}" \
-            -t "${LATEST}" \
+          docker build -t "${TAG}" -t "${LATEST}" \
             scenarios/15-network-policy-block/frontend
 
           docker push "${TAG}"
