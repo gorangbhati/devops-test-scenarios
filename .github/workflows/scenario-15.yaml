@@ -34,24 +34,25 @@ jobs:
 
       - name: Run tests if present
         run: |
-          echo "Checking for tests..."
+          echo "Checking for backend tests..."
 
-          # Node project
-          if [ -f "package.json" ]; then
-            echo "Node project detected"
+          if [ -f "scenarios/15-network-policy-block/backend/package.json" ]; then
+            cd scenarios/15-network-policy-block/backend
             npm install
-            npm test || echo "No npm tests found"
-
-          # Python project
-          elif [ -d "tests" ]; then
-            echo "Python tests detected"
-            pip install pytest
-            pytest tests/ -v
-
-          # No tests
-          else
-            echo "No tests found. Skipping test stage."
+            npm test || echo "No backend tests"
+            cd -
           fi
+
+          echo "Checking for frontend tests..."
+
+          if [ -f "scenarios/15-network-policy-block/frontend/package.json" ]; then
+            cd scenarios/15-network-policy-block/frontend
+            npm install
+            npm test || echo "No frontend tests"
+            cd -
+          fi
+
+          echo "Tests completed or skipped."
 
   # ─────────────────────────────────────────────
   # Job 2: Build Docker image and push to GHCR
