@@ -5,6 +5,7 @@ on:
 
 env:
   SCENARIO: "15-network-policy-block"
+  IMAGE_NAME: "scenario-15-network-policy-block"
   NAMESPACE: "test-scenerios"
 
 jobs:
