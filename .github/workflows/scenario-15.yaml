@@ -78,23 +78,37 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Build and push Docker image
-        id: meta
+      - name: Build and push backend image
         run: |
           set -euo pipefail
 
-          IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}"
+          IMAGE="ghcr.io/${{ github.repository_owner }}/scenario-15-backend"
           TAG="${IMAGE}:${{ github.run_number }}"
           LATEST="${IMAGE}:latest"
 
-          echo "Building image ${TAG}"
+          echo "Building backend image ${TAG}"
 
-          docker build -t "${TAG}" -t "${LATEST}" scenarios/15-network-policy-block/
+          docker build -t "${TAG}" -t "${LATEST}" \
+            scenarios/15-network-policy-block/backend
 
           docker push "${TAG}"
           docker push "${LATEST}"
 
-          echo "image=${TAG}" >> "$GITHUB_OUTPUT"
+      - name: Build and push frontend image
+        run: |
+          set -euo pipefail
+
+          IMAGE="ghcr.io/${{ github.repository_owner }}/scenario-15-frontend"
+          TAG="${IMAGE}:${{ github.run_number }}"
+          LATEST="${IMAGE}:latest"
+
+          echo "Building frontend image ${TAG}"
+
+          docker build -t "${TAG}" -t "${LATEST}" \
+            scenarios/15-network-policy-block/frontend
+
+          docker push "${TAG}"
+          docker push "${LATEST}"
 
 
   # ─────────────────────────────────────────────
