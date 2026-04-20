@@ -74,7 +74,7 @@ jobs:
       - name: Build and push Docker image
         id: meta
         run: |
-          set -eo pipefail
+          set -euo pipefail
 
           IMAGE_NAME="${{ env.IMAGE_NAME }}"
 
@@ -83,8 +83,8 @@ jobs:
           LATEST="${IMAGE}:latest"
 
           echo "Building image ${TAG}"
-
-          docker build -t "${TAG}" -t "${LATEST}" scenarios/11-resource-quota-exceeded/
+      
+          docker build -t "${TAG}" -t "${LATEST}" scenarios/11-resource-quota-exceeded/app/
 
           docker push "${TAG}"
           docker push "${LATEST}"
