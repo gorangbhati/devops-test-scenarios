@@ -1,15 +1,12 @@
 # ConfigMap — intentionally BAD configuration to trigger CrashLoopBackOff
 #
 # Problems in this config:
-#   1. DATABASE_URL uses "postgres://" instead of the required "postgresql://"
-#   2. APP_PORT is set to "not-a-number" (invalid integer)
-#   3. LOG_LEVEL is set to "VERBOSE" (not in the allowed set)
+# 1. DATABASE_URL uses "postgres://" instead of the required "postgresql://"
+# 2. APP_PORT is set to "not-a-number"
+# 3. LOG_LEVEL is set to "VERBOSE"
 #
-# To fix the CrashLoop, update the values to:
-#   DATABASE_URL: "postgresql://user:password@db-host:5432/mydb"
-#   APP_PORT: "8080"
-#   LOG_LEVEL: "INFO"
----
+# To fix the CrashLoop update values.
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -17,7 +14,8 @@ metadata:
   namespace: test-scenerios
   labels:
     scenario: "01-crashloop-bad-config"
+
 data:
-  DATABASE_URL: "postgres://user:password@db-host:5432/mydb"   # BUG: wrong scheme
-  APP_PORT: "not-a-number"                                       # BUG: not an integer
-  LOG_LEVEL: "VERBOSE"                                           # BUG: unsupported level
+  DATABASE_URL: "postgres://user:password@db-host:5432/mydb"
+  APP_PORT: "not-a-number"
+  LOG_LEVEL: "VERBOSE"
