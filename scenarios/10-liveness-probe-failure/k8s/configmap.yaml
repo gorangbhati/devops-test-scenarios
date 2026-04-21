@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: scenario-10-config
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "10-liveness-probe-failure"
 data:
