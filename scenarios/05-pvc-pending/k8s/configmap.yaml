@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: scenario-05-config
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "05-pvc-pending"
 data:
