@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: scenario-17-checkout
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "17-unhandled-exception-checkout"
     app: scenario-17
