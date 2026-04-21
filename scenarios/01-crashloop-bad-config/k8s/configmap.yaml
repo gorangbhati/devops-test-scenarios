@@ -14,7 +14,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: scenario-01-config
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "01-crashloop-bad-config"
 data:
