@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: scenario-02-config
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "02-api-latency-n-plus-one"
 data:
