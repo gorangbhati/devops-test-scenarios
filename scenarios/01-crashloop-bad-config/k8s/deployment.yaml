@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: scenario-01-crashloop
-  namespace: test-scenarios
+  namespace: test-scenerios
   labels:
     scenario: "01-crashloop-bad-config"
     app: scenario-01
