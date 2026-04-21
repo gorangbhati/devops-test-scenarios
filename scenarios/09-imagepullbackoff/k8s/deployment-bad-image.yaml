@@ -14,7 +14,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: scenario-09-bad-image
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "09-imagepullbackoff"
     variant: bad-image-name
