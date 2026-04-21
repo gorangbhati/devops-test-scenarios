@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: scenario-16-bg-panic
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "16-background-goroutine-panic"
     app: scenario-16
