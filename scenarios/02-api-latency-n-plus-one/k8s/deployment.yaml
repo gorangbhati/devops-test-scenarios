@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: scenario-02-n-plus-one
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "02-api-latency-n-plus-one"
     app: scenario-02
