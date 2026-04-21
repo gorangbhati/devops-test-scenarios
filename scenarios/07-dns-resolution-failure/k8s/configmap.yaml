@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: scenario-07-config
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "07-dns-resolution-failure"
 data:
