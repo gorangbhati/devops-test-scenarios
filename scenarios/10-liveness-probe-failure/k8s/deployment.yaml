@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: scenario-10-liveness-probe
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "10-liveness-probe-failure"
     app: scenario-10
