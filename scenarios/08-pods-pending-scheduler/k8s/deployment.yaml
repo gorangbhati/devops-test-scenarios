@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: scenario-08-pending-scheduler
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "08-pods-pending-scheduler"
     app: scenario-08
