@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: scenario-05-pvc-pending
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "05-pvc-pending"
     app: scenario-05
