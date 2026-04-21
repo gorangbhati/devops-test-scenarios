@@ -116,6 +116,10 @@ jobs:
         run: |
           cat scenarios/01-crashloop-bad-config/k8s/deployment.yaml
 
+      - name: Ensure namespace exists
+        run: |
+          kubectl create namespace test-scenerios --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Apply ConfigMap
         run: |
           kubectl apply -f scenarios/01-crashloop-bad-config/k8s/configmap.yaml
