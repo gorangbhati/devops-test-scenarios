@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: scenario-07-dns-check
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "07-dns-resolution-failure"
     app: scenario-07
