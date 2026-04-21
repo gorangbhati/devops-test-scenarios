@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: scenario-03-oomkilled
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "03-oomkilled-memory-leak"
     app: scenario-03
