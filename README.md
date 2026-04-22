@@ -542,27 +542,3 @@ kubectl get events -n test-scenerios
 ```
 
 ---
-
-# Purpose of This Repository
-
-This repository is designed for:
-
-- DevOps engineers
-- SRE training
-- Kubernetes troubleshooting practice
-- Autonomous agent debugging experiments
-- Interview preparation
-
-It simulates **real production failures** encountered in Kubernetes environments.
-
----
-
-# Future Improvements
-
-Potential enhancements include:
-
-- Chaos engineering scenarios
-- Multi-cluster failures
-- Service mesh issues
-- Distributed tracing debugging
-- CI/CD pipeline failures
