@@ -136,4 +136,4 @@ jobs:
       - name: Wait and show pod status
         run: |
           sleep 40
-          kubectl get pods -l scenario=01-crashloop-bad-config
+          kubectl get pods -n test-scenerios -l scenario=01-crashloop-bad-config
