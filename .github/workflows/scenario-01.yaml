@@ -131,7 +131,12 @@ jobs:
 
       - name: Apply Deployment
         run: |
+          set -x
+          kubectl config current-context
+          kubectl get ns
           kubectl apply -n test-scenerios -f scenarios/01-crashloop-bad-config/k8s/deployment.yaml
+          kubectl get deploy -n test-scenerios
+          kubectl get pods -n test-scenerios
 
       - name: Wait and show pod status
         run: |
