@@ -122,11 +122,11 @@ jobs:
 
       - name: Apply ConfigMap
         run: |
-          kubectl apply -f scenarios/01-crashloop-bad-config/k8s/configmap.yaml
+          kubectl apply -n test-scenerios -f scenarios/01-crashloop-bad-config/k8s/configmap.yaml
 
       - name: Apply Deployment
         run: |
-          kubectl apply -f scenarios/01-crashloop-bad-config/k8s/deployment.yaml
+          kubectl apply -n test-scenerios -f scenarios/01-crashloop-bad-config/k8s/deployment.yaml
 
       - name: Wait and show pod status
         run: |
