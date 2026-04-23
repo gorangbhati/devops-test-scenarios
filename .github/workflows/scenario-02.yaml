@@ -115,18 +115,23 @@ jobs:
 
       - name: Apply manifests
         run: |
-          kubectl apply -f scenarios/02-api-latency-n-plus-one/k8s/configmap.yaml
-          kubectl apply -f scenarios/02-api-latency-n-plus-one/k8s/deployment.yaml
-          kubectl apply -f scenarios/02-api-latency-n-plus-one/k8s/service.yaml
+          kubectl apply -n test-scenerios -f scenarios/02-api-latency-n-plus-one/k8s/configmap.yaml
+          kubectl apply -n test-scenerios -f scenarios/02-api-latency-n-plus-one/k8s/deployment.yaml
+          kubectl apply -n test-scenerios -f scenarios/02-api-latency-n-plus-one/k8s/service.yaml
 
       - name: Wait for rollout
         run: |
-          kubectl rollout status deployment/scenario-02-n-plus-one --timeout=300s || true
+          kubectl rollout status deployment/scenario-02-n-plus-one -n test-scenerios --timeout=300s
+
+      - name: Show service endpoint
+        run: |
+          kubectl get svc -n test-scenerios scenario-02-service
 
       - name: Demonstrate N+1 vs optimized query counts
         run: |
-          POD=$(kubectl get pods -l scenario=02-api-latency-n-plus-one \
-                  -o jsonpath='{.items[0].metadata.name}')
+          POD=$(kubectl get pods -n test-scenerios \
+            -l scenario=02-api-latency-n-plus-one \
+            -o jsonpath='{.items[0].metadata.name}')
           echo "=== N+1 endpoint (expect X-Query-Count: 51) ==="
           kubectl exec "${POD}" -- wget -qS http://localhost:3000/api/orders -O /dev/null 2>&1 \
             | grep -i x-query-count || true
