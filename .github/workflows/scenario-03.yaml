@@ -120,21 +120,27 @@ jobs:
 
       - name: Wait for initial rollout
         run: |
-          kubectl rollout status deployment/scenario-03-oomkilled --timeout=120s || true
+          kubectl rollout status deployment/scenario-03-oomkilled -n test-scenerios --timeout=120s
 
       - name: Trigger memory leak and wait for OOMKilled
         run: |
-          POD=$(kubectl get pods -l scenario=03-oomkilled-memory-leak \
-                  -o jsonpath='{.items[0].metadata.name}')
+          POD=$(kubectl get pods -n test-scenerios \
+              -l scenario=03-oomkilled-memory-leak \
+              -o jsonpath='{.items[0].metadata.name}')
+
           echo "Triggering leak requests..."
           for i in $(seq 1 5); do
-            kubectl exec "${POD}" -- wget -qO- http://localhost:8080/leak 2>/dev/null || true
+            kubectl exec -n test-scenerios "${POD}" -- \
+              wget -qO- http://localhost:8080/leak 2>/dev/null || true
             sleep 2
           done
+
           echo "Waiting 30s for OOMKill..."
           sleep 30
+
           echo "=== Pod status ==="
-          kubectl get pods -l scenario=03-oomkilled-memory-leak
+          kubectl get pods -n test-scenerios -l scenario=03-oomkilled-memory-leak
+
           echo "=== Pod description (look for OOMKilled) ==="
-          kubectl describe pod -l scenario=03-oomkilled-memory-leak \
+          kubectl describe pod -n test-scenerios -l scenario=03-oomkilled-memory-leak \
             | grep -A 10 "Last State:" || true
