@@ -233,6 +233,23 @@ Slow API responses
 
 ---
 
+### Accessing the API
+
+Once the scenario is deployed, the service exposes the API.
+
+Get the service IP:
+
+kubectl get svc -n test-scenerios
+
+Example output:
+
+scenario-02-service   LoadBalancer   34.xxx.xxx.xxx
+
+Access the API:
+
+http://<EXTERNAL-IP>/api/orders
+http://<EXTERNAL-IP>/api/orders/optimized
+
 ## Scenario 03 — OOMKilled Memory Leak
 
 **Issue**
