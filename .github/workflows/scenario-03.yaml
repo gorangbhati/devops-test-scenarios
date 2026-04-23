@@ -114,9 +114,9 @@ jobs:
 
       - name: Apply manifests
         run: |
-          kubectl apply -f scenarios/03-oomkilled-memory-leak/k8s/configmap.yaml
-          kubectl apply -f scenarios/03-oomkilled-memory-leak/k8s/deployment.yaml
-          kubectl apply -f scenarios/03-oomkilled-memory-leak/k8s/service.yaml
+          kubectl apply -n test-scenerios -f scenarios/03-oomkilled-memory-leak/k8s/configmap.yaml
+          kubectl apply -n test-scenerios -f scenarios/03-oomkilled-memory-leak/k8s/deployment.yaml
+          kubectl apply -n test-scenerios -f scenarios/03-oomkilled-memory-leak/k8s/service.yaml
 
       - name: Wait for initial rollout
         run: |
