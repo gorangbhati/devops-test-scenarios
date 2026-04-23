@@ -123,10 +123,6 @@ jobs:
         run: |
           kubectl rollout status deployment/scenario-02-n-plus-one -n test-scenerios --timeout=300s
 
-      - name: Show service endpoint
-        run: |
-          kubectl get svc -n test-scenerios scenario-02-service
-
       - name: Demonstrate N+1 vs optimized query counts
         run: |
           POD=$(kubectl get pods -n test-scenerios \
