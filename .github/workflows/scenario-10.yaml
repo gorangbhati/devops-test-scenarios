@@ -110,20 +110,25 @@ jobs:
         run: |
           POD=$(kubectl get pods -n test-scenerios -l scenario=10-liveness-probe-failure \
                   -o jsonpath='{.items[0].metadata.name}')
+      
           echo "=== Sending 7 /work requests to trigger deadlock (DEADLOCK_AFTER=5) ==="
           for i in $(seq 1 7); do
             kubectl exec -n test-scenerios "${POD}" -- wget -qO- http://localhost:8080/work 2>/dev/null || true
             sleep 1
           done
+      
           echo ""
           echo "=== Status after deadlock ==="
           kubectl exec -n test-scenerios "${POD}" -- wget -qO- http://localhost:8080/status 2>/dev/null || true
+      
           echo ""
           echo "Waiting 60s for liveness probe to fail and restart the container..."
           sleep 60
+      
           echo "=== Pod status (expect RESTARTS > 0) ==="
           kubectl get pods -n test-scenerios -l scenario=10-liveness-probe-failure
+      
           echo ""
           echo "=== Liveness probe failure events ==="
-          kubectl describe pod -n test-scenerios -l scenario=10-liveness-probe-failure
+          kubectl describe pod -n test-scenerios -l scenario=10-liveness-probe-failure \
             | grep -E "(Liveness|Killing|Unhealthy)" | head -15 || true
