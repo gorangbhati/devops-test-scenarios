@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: scenario-11-quota
+  name: test-scenerios
   labels:
     scenario: "11-resource-quota-exceeded"
 spec:
@@ -20,4 +20,4 @@ spec:
         resources:
           requests:
             cpu: "50m"
-            memory: "64Mi"
+            memory: "64Mio"
