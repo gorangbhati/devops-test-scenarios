@@ -52,7 +52,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: scenario-04-frontend
-  namespace: default
+  namespace: test-scenerios
   labels:
     scenario: "04-connection-refused"
     app: scenario-04-frontend
