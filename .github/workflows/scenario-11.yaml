@@ -5,6 +5,7 @@ on:
 
 env:
   SCENARIO: "11-resource-quota-exceeded"
+  IMAGE_NAME: "scenario-11-resource-quota-exceeded"
 
 
 jobs:
@@ -49,49 +50,27 @@ jobs:
 # Job 2: Build Docker image and push to GHCR
 # ─────────────────────────────────────────────
   build-and-push:
-    name: Build & Push Image
-    runs-on: ubuntu-latest
-    needs: test
+  - name: Build and push Docker image
+    id: meta
+    run: |
+      set -euo pipefail
 
-    permissions:
-      contents: read
-      packages: write
+      IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}"
+      TAG="${IMAGE}:${{ github.run_number }}"
+      LATEST="${IMAGE}:latest"
 
-    outputs:
-      image: ${{ steps.meta.outputs.image }}
+      echo "Building image: ${TAG}"
 
-    steps:
-      - uses: actions/checkout@v4
+      docker build \
+        -f scenarios/11-resource-quota-exceeded/app/Dockerfile \
+        -t "${TAG}" \
+        -t "${LATEST}" \
+        scenarios/11-resource-quota-exceeded/app
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
+      docker push "${TAG}"
+      docker push "${LATEST}"
 
-      - name: Build and push Docker image
-        id: meta
-        run: |
-          set -euo pipefail
-
-          IMAGE="ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}"
-          TAG="${IMAGE}:${{ github.run_number }}"
-          LATEST="${IMAGE}:latest"
-
-          echo "Building image: ${TAG}"
-
-          docker build \
-            -f scenarios/11-resource-quota-exceeded/app/Dockerfile \
-            -t "${TAG}" \
-            -t "${LATEST}" \
-            scenarios/11-resource-quota-exceeded/app
-
-          docker push "${TAG}"
-          docker push "${LATEST}"
-
-          echo "image=${TAG}" >> "$GITHUB_OUTPUT"
-
+      echo "image=${TAG}" >> "$GITHUB_OUTPUT"
 
 # ─────────────────────────────────────────────
 # Job 3: Deploy to GKE
