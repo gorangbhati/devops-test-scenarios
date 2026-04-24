@@ -10,7 +10,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: coredns
-  namespace: test-scenerios
+  namespace: kube-system
   labels:
     scenario: "07-dns-resolution-failure"
 data:
