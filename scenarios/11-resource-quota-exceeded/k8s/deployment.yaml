@@ -19,5 +19,5 @@ spec:
         image: us-central1-docker.pkg.dev/lunar-parsec-457813-u5/test-scenerio-kloudmate/scenario-11-resource-quota-exceeded:latest
         resources:
           requests:
-            cpu: "200m"
-            memory: "256Mi"
+            cpu: "50m"
+            memory: "64Mi"
