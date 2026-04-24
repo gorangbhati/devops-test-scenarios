@@ -6,7 +6,7 @@ on:
 env:
   SCENARIO: "11-resource-quota-exceeded"
   IMAGE_NAME: "scenario-11-resource-quota-exceeded"
-  NAMESPACE: "test-scenerios"
+  NAMESPACE: "scenario-11"
 
 jobs:
 
