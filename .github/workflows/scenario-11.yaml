@@ -101,63 +101,67 @@ jobs:
     name: Deploy to GKE
     runs-on: ubuntu-latest
     needs: build-and-push
-
+  
     permissions:
       contents: read
-
+  
     steps:
       - uses: actions/checkout@v4
-
-
-# Authenticate to Google Cloud
+  
+  # Authenticate to Google Cloud
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-
-# Install gcloud CLI
+  
+  # Install gcloud CLI
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
-
-
-# Get cluster credentials
+  
+  # Get cluster credentials
       - name: Get GKE credentials
         uses: google-github-actions/get-gke-credentials@v2
         with:
           cluster_name: ${{ vars.CLUSTER_NAME }}
           location: us-central1-a
           project_id: ${{ vars.PROJECT_ID }}
-
-
-# Ensure namespace exists
+  
+  # Ensure namespace exists
       - name: Ensure namespace exists
         run: |
           kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
-
-
-# Apply ResourceQuota
+  
+  # Apply ResourceQuota
       - name: Apply resource quota
         run: |
-          set -euo pipefail
           kubectl apply -n "${NAMESPACE}" -f scenarios/11-resource-quota-exceeded/k8s/quota.yaml
-
-
-# Apply scenario manifests
-      - name: Apply Kubernetes manifests
+  
+  # Apply Deployment
+      - name: Deploy application
         run: |
-          set -euo pipefail
-          kubectl apply -n "${NAMESPACE}" -f scenarios/11-resource-quota-exceeded/k8s/
-
-
-# Show quota status
+          kubectl apply -n "${NAMESPACE}" -f scenarios/11-resource-quota-exceeded/k8s/deployment.yaml
+  
+  # Wait for deployment attempt
+      - name: Wait for deployment
+        run: |
+          kubectl rollout status deployment/scenario-11-app -n "${NAMESPACE}" --timeout=120s || true
+  
+  # Show quota status
       - name: Show resource quota
         run: |
+          echo "=== ResourceQuota ==="
           kubectl get resourcequota -n "${NAMESPACE}"
           kubectl describe resourcequota -n "${NAMESPACE}"
-
-
-# Show pods
-      - name: Show pod status
+  
+  # Show pod status
+      - name: Show pods
         run: |
+          echo "=== Pods ==="
           kubectl get pods -n "${NAMESPACE}" -o wide || true
+  
+  # Show quota failure events
+      - name: Show quota errors
+        run: |
+          echo "=== ReplicaSet Events ==="
+          kubectl get rs -n "${NAMESPACE}"
+          kubectl describe rs -n "${NAMESPACE}" | grep -A5 -E "FailedCreate|exceeded quota" || true
