@@ -117,26 +117,26 @@ jobs:
 
       - name: Apply manifests
         run: |
-          kubectl apply -f scenarios/04-connection-refused/k8s/backend-configmap.yaml
-          kubectl apply -f scenarios/04-connection-refused/k8s/frontend-configmap.yaml
-          kubectl apply -f scenarios/04-connection-refused/k8s/deployments.yaml
-          kubectl apply -f scenarios/04-connection-refused/k8s/services.yaml
+          kubectl apply -n test-scenerios -f scenarios/04-connection-refused/k8s/backend-configmap.yaml
+          kubectl apply -n test-scenerios -f scenarios/04-connection-refused/k8s/frontend-configmap.yaml
+          kubectl apply -n test-scenerios -f scenarios/04-connection-refused/k8s/deployments.yaml
+          kubectl apply -n test-scenerios -f scenarios/04-connection-refused/k8s/services.yaml
 
       - name: Wait for pods to start
         run: |
-          kubectl wait --for=condition=ready pod -l app=scenario-04-backend --timeout=180s || true
-          kubectl wait --for=condition=ready pod -l app=scenario-04-frontend --timeout=180s || true
-          kubectl get pods
+          kubectl wait -n test-scenerios --for=condition=ready pod -l app=scenario-04-backend --timeout=180s || true
+          kubectl wait -n test-scenerios --for=condition=ready pod -l app=scenario-04-frontend --timeout=180s || true
+          kubectl get pods -n test-scenerios
 
       - name: Demonstrate the connection-refused error
         run: |
           set -euo pipefail
 
-          FRONTEND_POD=$(kubectl get pods -l app=scenario-04-frontend -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
-          BACKEND_POD=$(kubectl get pods -l app=scenario-04-backend -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+          FRONTEND_POD=$(kubectl get pods -n test-scenerios -l app=scenario-04-frontend -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+          BACKEND_POD=$(kubectl get pods -n test-scenerios -l app=scenario-04-backend -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
 
-          echo "Frontend pod: ${FRONTEND_POD}"
-          echo "Backend pod: ${BACKEND_POD}"
+          kubectl exec -n test-scenerios "${BACKEND_POD}"
+          kubectl exec -n test-scenerios "${FRONTEND_POD}"
 
           if [ -z "$BACKEND_POD" ] || [ -z "$FRONTEND_POD" ]; then
             echo "Pods not found"
@@ -154,4 +154,4 @@ jobs:
 
           echo ""
           echo "=== Frontend logs ==="
-          kubectl logs "${FRONTEND_POD}" --tail=20
+          kubectl logs -n test-scenerios "${FRONTEND_POD}" --tail=20
