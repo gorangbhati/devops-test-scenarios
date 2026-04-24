@@ -135,23 +135,23 @@ jobs:
           FRONTEND_POD=$(kubectl get pods -n test-scenerios -l app=scenario-04-frontend -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
           BACKEND_POD=$(kubectl get pods -n test-scenerios -l app=scenario-04-backend -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
 
-          kubectl exec -n test-scenerios "${BACKEND_POD}"
-          kubectl exec -n test-scenerios "${FRONTEND_POD}"
+          echo "Frontend pod: ${FRONTEND_POD}"
+          echo "Backend pod: ${BACKEND_POD}"
 
           if [ -z "$BACKEND_POD" ] || [ -z "$FRONTEND_POD" ]; then
             echo "Pods not found"
-            kubectl get pods
+            kubectl get pods -n test-scenerios
             exit 1
           fi
 
           echo ""
           echo "=== Backend is healthy ==="
-          kubectl exec "${BACKEND_POD}" -- curl -s http://localhost:5000/api/data || true
+          kubectl exec -n test-scenerios "$BACKEND_POD" -- curl -s http://localhost:5000/api/data || true
 
           echo ""
           echo "=== Frontend returns 502 (wrong BACKEND_URL port) ==="
-          kubectl exec "${FRONTEND_POD}" -- curl -s http://localhost:8080/api/proxy || true
+          kubectl exec -n test-scenerios "$FRONTEND_POD" -- curl -s http://localhost:8080/api/proxy || true
 
           echo ""
           echo "=== Frontend logs ==="
-          kubectl logs -n test-scenerios "${FRONTEND_POD}" --tail=20
+          kubectl logs -n test-scenerios "$FRONTEND_POD" --tail=20
