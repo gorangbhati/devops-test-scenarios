@@ -1,5 +1,4 @@
 ---
-# Healthy CoreDNS ConfigMap — apply this to restore DNS after the scenario.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -19,7 +18,7 @@ data:
           ttl 30
         }
         prometheus :9153
-        forward . 8.8.8.8
+        forward . /etc/resolv.conf
         cache 30
         loop
         reload
