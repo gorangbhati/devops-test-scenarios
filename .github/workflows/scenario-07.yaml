@@ -97,17 +97,17 @@ jobs:
 
       - name: Deploy app (normal DNS)
         run: |
-          kubectl apply -f scenarios/07-dns-resolution-failure/k8s/configmap.yaml
-          kubectl apply -f scenarios/07-dns-resolution-failure/k8s/deployment.yaml
-          kubectl apply -f scenarios/07-dns-resolution-failure/k8s/service.yaml
-          kubectl rollout status deployment/scenario-07-dns-check --timeout=120s || true
+          kubectl apply -n test-scenerios -f scenarios/07-dns-resolution-failure/k8s/configmap.yaml
+          kubectl apply -n test-scenerios -f scenarios/07-dns-resolution-failure/k8s/deployment.yaml
+          kubectl apply -n test-scenerios -f scenarios/07-dns-resolution-failure/k8s/service.yaml
+          kubectl rollout status -n test-scenerios deployment/scenario-07-dns-check --timeout=120s || true
 
       - name: Show healthy DNS check
         run: |
-          POD=$(kubectl get pods -l scenario=07-dns-resolution-failure \
-                  -o jsonpath='{.items[0].metadata.name}')
+          POD=$(kubectl get pods -n test-scenerios -l scenario=07-dns-resolution-failure \
+                    -o jsonpath='{.items[0].metadata.name}')
           echo "=== DNS check (healthy) ==="
-          kubectl exec "${POD}" -- python3 -c "
+          kubectl exec -n test-scenerios "${POD}" -- python3 -c "
           import urllib.request, json
           r = urllib.request.urlopen('http://localhost:8080/dns-check')
           print(json.loads(r.read()))
@@ -123,10 +123,10 @@ jobs:
 
       - name: Show DNS failure
         run: |
-          POD=$(kubectl get pods -l scenario=07-dns-resolution-failure \
+          POD=$(kubectl get pods -n test-scenerios -l scenario=07-dns-resolution-failure \
                   -o jsonpath='{.items[0].metadata.name}')
-          echo "=== DNS check (broken — expect resolved: false) ==="
-          kubectl exec "${POD}" -- python3 -c "
+          
+          kubectl exec -n test-scenerios "${POD}" -- python3 -c "
           import urllib.request, json
           r = urllib.request.urlopen('http://localhost:8080/dns-check')
           print(json.loads(r.read()))
@@ -135,7 +135,7 @@ jobs:
       - name: Restore healthy CoreDNS
         if: always()
         run: |
-          kubectl apply -f scenarios/07-dns-resolution-failure/k8s/healthy-coredns-configmap.yaml
+          kubectl apply -n kube-system -f scenarios/07-dns-resolution-failure/k8s/healthy-coredns-configmap.yaml
           kubectl rollout restart deployment -n kube-system coredns || \
           kubectl rollout restart deployment -n kube-system kube-dns
           echo "CoreDNS restored to healthy state"
