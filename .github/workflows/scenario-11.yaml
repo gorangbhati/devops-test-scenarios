@@ -3,6 +3,10 @@ name: Scenario 11 – Resource Quota Exceeded
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 env:
   SCENARIO: "11-resource-quota-exceeded"
   IMAGE_NAME: "scenario-11-resource-quota-exceeded"
